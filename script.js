@@ -53,14 +53,14 @@ Promise.all([
 });
 
 // Function to aggregate data by state
-function aggregateByState(data, key) {
+function aggregateByState(data, valueField) {
     const aggregation = {};
     data.forEach(row => {
         const stateName = row.State;
         if (!aggregation[stateName]) {
             aggregation[stateName] = 0;
         }
-        aggregation[stateName] += parseInt(row[key], 10) || 0;
+        aggregation[stateName] += parseInt(row[valueField], 10) || 0;
     });
     return aggregation;
 }
