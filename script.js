@@ -1,10 +1,8 @@
 // Initial configurations
 const width = 960, height = 600;
 const colorScheme = d3.schemeReds[6];
-const colorScale = d3.scaleThreshold()
-    .domain(d3.range(0, maxDataValue, maxDataValue / colorScheme.length))
-    .range(colorScheme);
-
+let maxDataValue; // This will be set after data is loaded
+const colorScale = d3.scaleThreshold();
 const path = d3.geoPath();
 
 // Append SVG to the map container
@@ -25,15 +23,22 @@ const tooltip = d3.select("body").append("div")
 
 // Load geographic and data files
 Promise.all([
-    d3.json("https://d3js.org/us-10m.v1.json"), 
+    d3.json("https://d3js.org/us-10m.v1.json"),
     d3.csv("covid_confirmed_usafacts.csv"),
     d3.csv("covid_deaths_usafacts.csv"),
     d3.csv("covid_county_population_usafacts.csv")
 ]).then(function (files) {
     const us = files[0];
-   const cases = aggregateByState(files[1], 'population'); // Assuming 'population' represents cases
-    const deaths = aggregateByState(files[2], 'population'); // Assuming 'population' represents deaths
-    const population = aggregateByState(files[3], 'population'); // Using 'population' for vaccinations placeholder
+    const cases = aggregateByState(files[1], 'population'); // Use the appropriate field for cases
+    const deaths = aggregateByState(files[2], 'population'); // Use the appropriate field for deaths
+    const population = aggregateByState(files[3], 'population'); // Use the appropriate field for vaccinations
+
+    // Determine the max value for color domain dynamically
+    maxDataValue = Math.max(
+        Math.max(...Object.values(cases)),
+        Math.max(...Object.values(deaths))
+    );
+    colorScale.domain(d3.range(0, maxDataValue, maxDataValue / colorScheme.length)).range(colorScheme);
 
     // Combine data into a single object
     const dataMap = {};
@@ -41,10 +46,9 @@ Promise.all([
         dataMap[state] = {
             cases: cases[state],
             deaths: deaths[state],
-            vaccination: population[state]  
+            vaccination: population[state] // Placeholder for vaccination data
         };
     });
-
 
     // Draw initial map with default data type (cases)
     drawMap(us, dataMap, "cases");
@@ -57,44 +61,39 @@ Promise.all([
 
 // Function to aggregate data by state
 function aggregateByState(data, key) {
-    return data.reduce((acc, cur) => {
-        let state = cur['State'];
-        let value = cur[key];
-        if (!state || !value) {
-            return acc; // skip if state or value is missing
+    const aggregation = {};
+    data.forEach(row => {
+        const state = row['State'];
+        const value = parseInt(row[key], 10);
+        if (state && !isNaN(value)) {
+            aggregation[state] = (aggregation[state] || 0) + value;
         }
-        if (!acc[state]) {
-            acc[state] = 0;
-        }
-        acc[state] += +value; // use unary plus to convert to number
-        return acc;
-    }, {});
+    });
+    return aggregation;
 }
 
 // Draw or update the map based on the dataset
 function drawMap(us, dataMap, dataType) {
-    const dataValues = Object.values(dataMap).map(d => d[dataType]);
-    colorScale.domain([d3.min(dataValues), d3.max(dataValues)]);
-    svg.selectAll("*").remove();
+    svg.selectAll("*").remove(); // Clear previous drawings
 
-const states = svg.append("g")
+    // Create states and bind data
+    const states = svg.append("g")
         .attr("class", "states")
         .selectAll("path")
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
-        // Ensure fill color is based on the correct data
         .attr("fill", d => {
-            let stateName = d.properties.name; // This should match your topojson's state name property
-            let stateData = dataMap[stateName];
+            const stateData = dataMap[d.properties.name];
             return stateData ? colorScale(stateData[dataType]) : "#ccc";
         })
         .attr("d", path);
-        states.on("mouseover", (event, d) => {
-        let stateName = d.properties.name; // This should match your topojson's state name property
-        let stateData = dataMap[stateName];
-        let dataValue = stateData ? stateData[dataType] : "No data";
+
+    // Add tooltip functionality
+    states.on("mouseover", (event, d) => {
+        const stateData = dataMap[d.properties.name];
+        const dataValue = stateData ? stateData[dataType] : "No data";
         tooltip.style("visibility", "visible")
-               .html(`<strong>${stateName}</strong>: ${dataValue}`)
+               .html(`<strong>${d.properties.name}</strong>: ${dataValue}`)
                .style("left", `${event.pageX + 10}px`)
                .style("top", `${event.pageY - 28}px`);
     })
@@ -105,6 +104,7 @@ const states = svg.append("g")
     .on("mouseout", () => {
         tooltip.style("visibility", "hidden");
     });
+
     // Optional: Draw state borders
     svg.append("path")
         .attr("class", "state-borders")
