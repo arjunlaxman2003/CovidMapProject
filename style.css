@@ -10,24 +10,26 @@ body {
 
 #controls {
     text-align: center;
-    margin: 20px;
+    margin-top: 20px;
 }
 
 #map {
     width: 960px; /* Standard width adjusted to 960px for consistency */
     height: 600px; /* Height adjusted to 600px for better display */
+    margin: 20px 0; /* Margin to give some space above and below the map */
     background-color: #f0f0f0; /* Light grey background to contrast the states */
     border: 1px solid #ccc; /* Adds a subtle border around the map */
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
 }
 
 #data-select {
-    padding: 8px 16px; /* Padding adjusted for better clickability */
+    padding: 10px 20px; /* Padding adjusted for better clickability */
     font-size: 16px; /* Font size for readability */
     border: 2px solid #ccc; /* Solid border for clear boundary */
-    border-radius: 4px; /* Rounded corners for modern aesthetic */
+    border-radius: 5px; /* Rounded corners for modern aesthetic */
     cursor: pointer; /* Cursor pointer to indicate it's clickable */
     background-color: white; /* White background for clarity */
+    margin-bottom: 20px; /* Space below the dropdown */
 }
 
 #tooltip {
@@ -42,8 +44,23 @@ body {
     z-index: 1000; /* High z-index to ensure it's on top of other elements */
     font-size: 14px; /* Slightly smaller font size for tooltips */
     color: #333; /* Dark grey color for better visibility */
+    max-width: 200px; /* Maximum width for the tooltip to avoid very wide tooltips */
 }
 
+/* Color Schemes for different views */
+.cases-color {
+    fill: #ff7f7f; /* A shade of red */
+}
+
+.deaths-color {
+    fill: #404040; /* A shade of dark gray for more serious representation */
+}
+
+.vaccination-rate-color {
+    fill: #7fff7f; /* A shade of green */
+}
+
+/* Responsive Design Adjustments */
 @media (max-width: 768px) {
     #map {
         width: 100%; /* Full width on smaller screens */
@@ -52,9 +69,8 @@ body {
 
     #data-select {
         width: 90%; /* Makes select wider on smaller screens */
-        padding: 8px 10px; /* Adjust padding for smaller space */
-        font-size: 14px; /* Adjust font size for smaller screens */
-        margin-bottom: 20px; /* Adds some space below the select on small screens */
+        padding: 12px 10px; /* Adjust padding for smaller space */
+        font-size: 16px; /* Keeps font size for better touch interaction */
     }
 
     #tooltip {
