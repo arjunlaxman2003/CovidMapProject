@@ -54,5 +54,10 @@ body {
         width: 90%; /* Makes select wider on smaller screens */
         padding: 8px 10px; /* Adjust padding for smaller space */
         font-size: 14px; /* Adjust font size for smaller screens */
+        margin-bottom: 20px; /* Adds some space below the select on small screens */
+    }
+
+    #tooltip {
+        font-size: 12px; /* Even smaller font size for tooltips on small screens */
     }
 }
