@@ -1,7 +1,10 @@
 // Initial configurations
 const width = 960, height = 600;
 const colorScheme = d3.schemeReds[6];
-const colorScale = d3.scaleQuantize().range(colorScheme);
+const colorScale = d3.scaleThreshold()
+    .domain(d3.range(0, maxDataValue, maxDataValue / colorScheme.length))
+    .range(colorScheme);
+
 const path = d3.geoPath();
 
 // Append SVG to the map container
