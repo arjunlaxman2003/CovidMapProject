@@ -22,23 +22,24 @@ const tooltip = d3.select("body").append("div")
 
 // Load geographic and data files
 Promise.all([
-    d3.json("https://d3js.org/us-10m.v1.json"), // TopoJSON file for US states
-    d3.csv("covid_confirmed_usafacts.csv"),    // Replace with the correct path to your CSV
-    d3.csv("covid_deaths_usafacts.csv"),       // Replace with the correct path to your CSV
-    d3.csv("covid_county_population_usafacts.csv") // Replace with the correct path to your CSV
+    d3.json("https://d3js.org/us-10m.v1.json"),
+    d3.csv("covid_confirmed_usafacts.csv"),
+    d3.csv("covid_deaths_usafacts.csv"),
+    d3.csv("covid_county_population_usafacts.csv")
 ]).then(function (files) {
     const us = files[0];
-    const cases = aggregateByState(files[1], 'population'); // Assuming 'population' field holds case data
-    const deaths = aggregateByState(files[2], 'StateFIPS'); // If 'StateFIPS' holds death data
-    const population = aggregateByState(files[3], 'StateFIPS'); // If 'StateFIPS' holds population data
+    const casesByState = aggregateByState(files[1], 'population'); // Assuming 'population' represents the case count
+    const deathsByState = aggregateByState(files[2], 'StateFIPS'); // Assuming you will replace 'StateFIPS' with the actual field for death counts
+    const populationByState = aggregateByState(files[3], 'StateFIPS'); // Assuming 'StateFIPS' represents population here, though you may need another field
 
-    // Combine data into a single object
+    // Combine data into a single object keyed by the state name
     const dataMap = {};
-    Object.keys(cases).forEach(state => {
-        dataMap[state] = {
-            cases: cases[state],
-            deaths: deaths[state],
-            vaccination: population[state]  // Replace 'vaccination' with the correct field when available
+    us.objects.states.geometries.forEach(geometry => {
+        const stateName = geometry.properties.name;
+        dataMap[stateName] = {
+            cases: casesByState[stateName] || 0,
+            deaths: deathsByState[stateName] || 0,
+            vaccination: populationByState[stateName] || 0 // You'll need actual vaccination data here
         };
     });
 
@@ -52,25 +53,22 @@ Promise.all([
 });
 
 // Function to aggregate data by state
-function aggregateByState(data, type) {
-    const aggregatedData = {};
+function aggregateByState(data, key) {
+    const aggregation = {};
     data.forEach(row => {
-        const state = row['State'];
-        if (state) {
-            if (!(state in aggregatedData)) {
-                aggregatedData[state] = 0;
-            }
-            aggregatedData[state] += parseInt(row[type], 10) || 0;
+        const stateName = row.State;
+        if (!aggregation[stateName]) {
+            aggregation[stateName] = 0;
         }
+        aggregation[stateName] += parseInt(row[key], 10) || 0;
     });
-    return aggregatedData;
+    return aggregation;
 }
 
 // Draw or update the map based on the dataset
 function drawMap(us, dataMap, dataType) {
-    // Set color domain based on data type
-    const maxDataTypeValue = Math.max(...Object.values(dataMap).map(d => d[dataType]));
-    colorScale.domain([0, maxDataTypeValue]);
+    const dataValues = Object.values(dataMap).map(d => d[dataType]);
+    colorScale.domain([d3.min(dataValues), d3.max(dataValues)]);
 
     svg.selectAll("*").remove(); // Clear previous drawings
 
@@ -80,15 +78,17 @@ function drawMap(us, dataMap, dataType) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateData = dataMap[d.properties.name]; // Ensure this matches the TopoJSON properties
+            const stateData = dataMap[d.properties.name];
             return stateData ? colorScale(stateData[dataType]) : "#ccc";
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateData = dataMap[d.properties.name]; // Ensure this matches the TopoJSON properties
-            const dataValue = stateData ? stateData[dataType] : "No data";
             tooltip.style("visibility", "visible")
-                .html(`<strong>${d.properties.name}</strong>: ${dataValue}`) // Adjust if 'name' is not the correct property
+                .html(() => {
+                    const stateData = dataMap[d.properties.name];
+                    const dataValue = stateData ? stateData[dataType] : "No data";
+                    return `<strong>${d.properties.name}</strong>: ${dataType} ${dataValue}`;
+                })
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
