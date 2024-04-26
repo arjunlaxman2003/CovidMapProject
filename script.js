@@ -28,9 +28,9 @@ Promise.all([
     d3.csv("covid_county_population_usafacts.csv")
 ]).then(function (files) {
     const us = files[0];
-    const casesByState = aggregateByState(files[1], 'population'); // Assuming 'population' represents the case count
-    const deathsByState = aggregateByState(files[2], 'StateFIPS'); // Assuming you will replace 'StateFIPS' with the actual field for death counts
-    const populationByState = aggregateByState(files[3], 'StateFIPS'); // Assuming 'StateFIPS' represents population here, though you may need another field
+    const casesByState = aggregateByState(files[1], 'population'); // Replace 'population' with the actual cases field name
+    const deathsByState = aggregateByState(files[2], 'StateFIPS'); // Replace 'StateFIPS' with the actual deaths field name
+    const populationByState = aggregateByState(files[3], 'StateFIPS'); // Replace 'StateFIPS' with the actual population field name
 
     // Combine data into a single object keyed by the state name
     const dataMap = {};
@@ -39,7 +39,7 @@ Promise.all([
         dataMap[stateName] = {
             cases: casesByState[stateName] || 0,
             deaths: deathsByState[stateName] || 0,
-            vaccination: populationByState[stateName] || 0 // You'll need actual vaccination data here
+            population: populationByState[stateName] || 0
         };
     });
 
@@ -57,22 +57,25 @@ function aggregateByState(data, valueField) {
     const aggregation = {};
     data.forEach(row => {
         const stateName = row.State;
-        if (!aggregation[stateName]) {
-            aggregation[stateName] = 0;
+        if (stateName) { // Make sure there's a state name
+            if (!aggregation[stateName]) {
+                aggregation[stateName] = 0;
+            }
+            aggregation[stateName] += parseInt(row[valueField], 10) || 0;
         }
-        aggregation[stateName] += parseInt(row[valueField], 10) || 0;
     });
     return aggregation;
 }
 
 // Draw or update the map based on the dataset
 function drawMap(us, dataMap, dataType) {
+    // Define the color scale based on the selected data type
     const dataValues = Object.values(dataMap).map(d => d[dataType]);
-    colorScale.domain([d3.min(dataValues), d3.max(dataValues)]);
+    colorScale.domain([0, d3.max(dataValues)]);
 
     svg.selectAll("*").remove(); // Clear previous drawings
 
-    const states = svg.append("g")
+    svg.append("g")
         .attr("class", "states")
         .selectAll("path")
         .data(topojson.feature(us, us.objects.states).features)
@@ -83,18 +86,16 @@ function drawMap(us, dataMap, dataType) {
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            tooltip.style("visibility", "visible")
-                .html(() => {
-                    const stateData = dataMap[d.properties.name];
-                    const dataValue = stateData ? stateData[dataType] : "No data";
-                    return `<strong>${d.properties.name}</strong>: ${dataType} ${dataValue}`;
-                })
-                .style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 28) + "px");
+            const stateData = dataMap[d.properties.name];
+            const dataValue = stateData ? stateData[dataType] : "No data";
+            tooltip.html(`<strong>${d.properties.name}</strong>: ${dataType} ${dataValue}`)
+                .style("visibility", "visible")
+                .style("left", `${event.pageX + 10}px`)
+                .style("top", `${event.pageY - 28}px`);
         })
         .on("mousemove", (event) => {
-            tooltip.style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 28) + "px");
+            tooltip.style("left", `${event.pageX + 10}px`)
+                .style("top", `${event.pageY - 28}px`);
         })
         .on("mouseout", () => {
             tooltip.style("visibility", "hidden");
