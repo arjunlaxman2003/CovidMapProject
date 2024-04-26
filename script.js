@@ -1,4 +1,4 @@
-// Initial configurations
+// Define configurations and global variables
 const width = 960, height = 600;
 const colorScheme = d3.schemeReds[6];
 const colorScale = d3.scaleQuantize().range(colorScheme);
@@ -9,7 +9,7 @@ const svg = d3.select("#map").append("svg")
     .attr("width", width)
     .attr("height", height);
 
-// Define tooltip
+// Define the tooltip
 const tooltip = d3.select("body").append("div")
     .attr("id", "tooltip")
     .style("position", "absolute")
@@ -25,21 +25,22 @@ Promise.all([
     d3.json("https://d3js.org/us-10m.v1.json"),
     d3.csv("covid_confirmed_usafacts.csv"),
     d3.csv("covid_deaths_usafacts.csv"),
-    d3.csv("covid_county_population_usafacts.csv")
-]).then(function (files) {
-    const us = files[0];
-    const casesByState = aggregateByState(files[1], 'population'); // Replace 'population' with the actual cases field name
-    const deathsByState = aggregateByState(files[2], 'StateFIPS'); // Replace 'StateFIPS' with the actual deaths field name
-    const populationByState = aggregateByState(files[3], 'StateFIPS'); // Replace 'StateFIPS' with the actual population field name
+    d3.csv("covid_county_population_usafacts.csv"),
+    d3.csv("covid19_vaccinations_in_the_united_states.csv")
+]).then(function ([us, confirmed, deaths, population, vaccinations]) {
+    // Process and combine data
+    const confirmedByState = aggregateByState(confirmed, 'population');
+    const deathsByState = aggregateByState(deaths, 'population');
+    const vaccinationRates = createVaccinationDataMap(vaccinations);
 
-    // Combine data into a single object keyed by the state name
+    // Combine data into a single object
     const dataMap = {};
-    us.objects.states.geometries.forEach(geometry => {
-        const stateName = geometry.properties.name;
-        dataMap[stateName] = {
-            cases: casesByState[stateName] || 0,
-            deaths: deathsByState[stateName] || 0,
-            population: populationByState[stateName] || 0
+    us.objects.states.geometries.forEach(geo => {
+        let state = geo.properties.name;
+        dataMap[state] = {
+            cases: confirmedByState[state] || 0,
+            deaths: deathsByState[state] || 0,
+            vaccinationRate: vaccinationRates[state] || 0
         };
     });
 
@@ -52,50 +53,62 @@ Promise.all([
     });
 });
 
-// Function to aggregate data by state
-function aggregateByState(data, valueField) {
-    const aggregation = {};
-    data.forEach(row => {
-        const stateName = row.State;
-        if (stateName) { // Make sure there's a state name
-            if (!aggregation[stateName]) {
-                aggregation[stateName] = 0;
+// Aggregate data by state
+function aggregateByState(data, fieldName) {
+    let aggregation = {};
+    data.forEach(d => {
+        let state = d.State;
+        if (state) {
+            if (!aggregation[state]) {
+                aggregation[state] = 0;
             }
-            aggregation[stateName] += parseInt(row[valueField], 10) || 0;
+            aggregation[state] += parseInt(d[fieldName], 10);
         }
     });
     return aggregation;
 }
 
+// Create vaccination data map
+function createVaccinationDataMap(vaccinationData) {
+    let map = {};
+    vaccinationData.forEach(d => {
+        map[d.Jurisdiction] = parseFloat(d['Percent of total pop with at least one dose']);
+    });
+    return map;
+}
+
 // Draw or update the map based on the dataset
 function drawMap(us, dataMap, dataType) {
-    // Define the color scale based on the selected data type
-    const dataValues = Object.values(dataMap).map(d => d[dataType]);
-    colorScale.domain([0, d3.max(dataValues)]);
+    // Define color domain based on the type of data
+    let dataValues = Object.values(dataMap).map(d => d[dataType]);
+    let maxDataValue = d3.max(dataValues);
+    colorScale.domain([0, maxDataValue]);
 
     svg.selectAll("*").remove(); // Clear previous drawings
 
-    svg.append("g")
+    const states = svg.append("g")
         .attr("class", "states")
         .selectAll("path")
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateData = dataMap[d.properties.name];
+            let stateData = dataMap[d.properties.name];
             return stateData ? colorScale(stateData[dataType]) : "#ccc";
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateData = dataMap[d.properties.name];
-            const dataValue = stateData ? stateData[dataType] : "No data";
-            tooltip.html(`<strong>${d.properties.name}</strong>: ${dataType} ${dataValue}`)
-                .style("visibility", "visible")
-                .style("left", `${event.pageX + 10}px`)
-                .style("top", `${event.pageY - 28}px`);
+            tooltip.style("visibility", "visible")
+                .html(() => {
+                    let stateData = dataMap[d.properties.name];
+                    let dataValue = stateData ? stateData[dataType] : "No data";
+                    return `<strong>${d.properties.name}</strong>: ${dataValue}`;
+                })
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
         })
         .on("mousemove", (event) => {
-            tooltip.style("left", `${event.pageX + 10}px`)
-                .style("top", `${event.pageY - 28}px`);
+            tooltip.style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
         })
         .on("mouseout", () => {
             tooltip.style("visibility", "hidden");
