@@ -12,11 +12,11 @@
         <select id="data-select">
             <option value="cases">Cases</option>
             <option value="deaths">Deaths</option>
-            <option value="vaccinationRate">Vaccination Rate</option>
+            <option value="vaccination">Vaccination Rate</option> <!-- Match the option value with the script -->
         </select>
     </div>
     <div id="map"></div>
-    <div id="tooltip"></div>
+    <div id="tooltip" style="position: absolute; visibility: hidden; padding: 10px; background-color: white; border: 1px solid #ccc; border-radius: 5px; pointer-events: none;"></div>
     <script src="script.js"></script>
 </body>
 </html>
