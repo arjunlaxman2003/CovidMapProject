@@ -29,10 +29,10 @@ Promise.all([
     d3.csv("covid19_vaccinations_in_the_united_states.csv")
 ]).then(function ([us, confirmedData, deathsData, populationData, vaccinationData]) {
     // Pre-process the data
-    const casesByState = processData(confirmedData, 'cases');
-    const deathsByState = processData(deathsData, 'deaths');
+    const casesByState = processData(confirmedData);
+    const deathsByState = processData(deathsData);
     const populationByState = processPopulation(populationData);
-    const vaccinationByState = processVaccinationData(vaccinationData);
+    const vaccinationByState = processVaccination(vaccinationData);
 
     // Combine data into a single object
     const dataMap = {
@@ -44,29 +44,36 @@ Promise.all([
 
     drawMap(us, dataMap, "cases"); // Initial drawing of the map with cases data
 
-    // Set up UI interaction
-    document.getElementById('data-select').addEventListener('change', function() {
-        drawMap(us, dataMap, this.value);
+    // Set up UI interaction for data type
+    document.querySelectorAll('input[name="data-type"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            drawMap(us, dataMap, this.value);
+        });
+    });
+
+    // Set up UI interaction for time period
+    document.querySelectorAll('input[name="time-period"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            drawMap(us, dataMap, document.querySelector('input[name="data-type"]:checked').value);
+        });
     });
 });
 
 // Process total cases and deaths by state
-function processData(data, type) {
-    const result = {};
+function processData(data) {
+    const totalByState = {};
     data.forEach(d => {
         const state = d.State;
-        if (state) {
-            if (!result[state]) {
-                result[state] = 0;
-            }
-            for (const key in d) {
-                if (key.includes('/') && d[key]) {
-                    result[state] += parseInt(d[key], 10);
-                }
-            }
+        if (!totalByState[state]) {
+            totalByState[state] = 0;
         }
+        Object.keys(d).forEach(key => {
+            if (key.match(/\d{1,2}\/\d{1,2}\/\d{2}/)) {
+                totalByState[state] += parseInt(d[key], 10) || 0;
+            }
+        });
     });
-    return result;
+    return totalByState;
 }
 
 // Process population data
@@ -74,27 +81,25 @@ function processPopulation(data) {
     const populationByState = {};
     data.forEach(d => {
         const state = d.State;
-        if (state) {
-            populationByState[state] = parseInt(d.population, 10);
-        }
+        populationByState[state] = parseInt(d.population, 10);
     });
     return populationByState;
 }
 
 // Process vaccination data
-function processVaccinationData(data) {
+function processVaccination(data) {
     const vaccinationByState = {};
     data.forEach(d => {
         const state = d.Jurisdiction;
-        if (state) {
-            vaccinationByState[state] = parseFloat(d['Percent of total pop with at least one dose']);
-        }
+        vaccinationByState[state] = parseFloat(d['Percent of total pop with at least one dose']);
     });
     return vaccinationByState;
 }
 
 // Draw or update the map based on the dataset
 function drawMap(us, dataMap, dataType) {
+    // Determine time period selected by the user
+    const timePeriod = document.querySelector('input[name="time-period"]:checked').value;
     const dataValues = Object.values(dataMap[dataType]);
     colorScale.domain([0, d3.max(dataValues)]);
 
@@ -106,15 +111,18 @@ function drawMap(us, dataMap, dataType) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            // The `name` property below should match the TopoJSON state property
+            // Extract state data based on the selected time period
             const stateData = dataMap[dataType][d.properties.name];
-            return stateData ? colorScale(stateData) : "#ccc";
+            const value = stateData ? (timePeriod === 'monthly' ? stateData.monthly : stateData.yearly) : 0;
+            return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
+            // Display data in tooltip
             const stateData = dataMap[dataType][d.properties.name];
+            const value = stateData ? (timePeriod === 'monthly' ? stateData.monthly : stateData.yearly) : "No data";
             tooltip.style("visibility", "visible")
-                .html(`${d.properties.name}: ${stateData ? stateData : "No data"}`)
+                .html(`${d.properties.name}: ${value}`)
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
