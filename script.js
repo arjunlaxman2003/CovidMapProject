@@ -29,10 +29,10 @@ Promise.all([
     d3.csv("covid19_vaccinations_in_the_united_states.csv")
 ]).then(function ([us, confirmedData, deathsData, populationData, vaccinationData]) {
     // Pre-process the data
-    const casesByState = processData(confirmedData);
-    const deathsByState = processData(deathsData);
+    const casesByState = processData(confirmedData, 'cases');
+    const deathsByState = processData(deathsData, 'deaths');
     const populationByState = processPopulation(populationData);
-    const vaccinationByState = processVaccination(vaccinationData);
+    const vaccinationByState = processVaccinationData(vaccinationData);
 
     // Combine data into a single object
     const dataMap = {
@@ -42,8 +42,7 @@ Promise.all([
         vaccination: vaccinationByState
     };
 
-    // Draw initial map with default data type (cases)
-    drawMap(us, dataMap, "cases");
+    drawMap(us, dataMap, "cases"); // Initial drawing of the map with cases data
 
     // Set up UI interaction
     document.getElementById('data-select').addEventListener('change', function() {
@@ -52,38 +51,44 @@ Promise.all([
 });
 
 // Process total cases and deaths by state
-function processData(data) {
-    const totalByState = {};
-    data.forEach(row => {
-        const state = row.State;
-        if (!totalByState[state]) {
-            totalByState[state] = 0;
-        }
-        Object.keys(row).forEach(key => {
-            if (key.match(/\d{1,2}\/\d{1,2}\/\d{2}/)) { // Matches date format MM/DD/YY
-                totalByState[state] += +row[key] || 0;
+function processData(data, type) {
+    const result = {};
+    data.forEach(d => {
+        const state = d.State;
+        if (state) {
+            if (!result[state]) {
+                result[state] = 0;
             }
-        });
+            for (const key in d) {
+                if (key.includes('/') && d[key]) {
+                    result[state] += parseInt(d[key], 10);
+                }
+            }
+        }
     });
-    return totalByState;
+    return result;
 }
 
 // Process population data
 function processPopulation(data) {
     const populationByState = {};
-    data.forEach(row => {
-        const state = row.State;
-        populationByState[state] = +row.population || 0;
+    data.forEach(d => {
+        const state = d.State;
+        if (state) {
+            populationByState[state] = parseInt(d.population, 10);
+        }
     });
     return populationByState;
 }
 
 // Process vaccination data
-function processVaccination(data) {
+function processVaccinationData(data) {
     const vaccinationByState = {};
-    data.forEach(row => {
-        const jurisdiction = row['Jurisdiction'];
-        vaccinationByState[jurisdiction] = +row['Percent of total pop with at least one dose'] || 0;
+    data.forEach(d => {
+        const state = d.Jurisdiction;
+        if (state) {
+            vaccinationByState[state] = parseFloat(d['Percent of total pop with at least one dose']);
+        }
     });
     return vaccinationByState;
 }
@@ -95,22 +100,21 @@ function drawMap(us, dataMap, dataType) {
 
     svg.selectAll("*").remove(); // Clear previous drawings
 
-    const states = svg.append("g")
+    svg.append("g")
         .attr("class", "states")
         .selectAll("path")
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateName = d.properties.name;
-            const stateData = dataMap[dataType][stateName];
+            // The `name` property below should match the TopoJSON state property
+            const stateData = dataMap[dataType][d.properties.name];
             return stateData ? colorScale(stateData) : "#ccc";
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateName = d.properties.name;
-            const stateData = dataMap[dataType][stateName];
+            const stateData = dataMap[dataType][d.properties.name];
             tooltip.style("visibility", "visible")
-                .html(`${stateName}: ${stateData ? stateData : "No data"}`)
+                .html(`${d.properties.name}: ${stateData ? stateData : "No data"}`)
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
@@ -122,7 +126,7 @@ function drawMap(us, dataMap, dataType) {
             tooltip.style("visibility", "hidden");
         });
 
-    // Optional: Draw state borders
+    // Draw state borders
     svg.append("path")
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
