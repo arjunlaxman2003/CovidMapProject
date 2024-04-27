@@ -20,66 +20,73 @@ const tooltip = d3.select("body").append("div")
     .style("border-radius", "5px")
     .style("pointer-events", "none");
 
-// Function to sum data by state across all date fields
-function sumDataByState(data, dateColumns) {
-  const summedData = {};
-  data.forEach(row => {
-    const state = row.State;
-    if (state) { // Make sure there's a state name
-      if (!summedData[state]) {
-        summedData[state] = 0;
-      }
-      dateColumns.forEach(date => {
-        summedData[state] += parseInt(row[date], 10) || 0;
-      });
-    }
-  });
-  return summedData;
-}
-
-// Function to get the columns for each date from the dataset
-function getDateColumns(data) {
-  const dateColumns = data.columns.filter(column => column.match(/\d{1,2}\/\d{1,2}\/\d{2,4}/));
-  return dateColumns;
-}
-
 // Load geographic and data files
 Promise.all([
-    d3.json("https://d3js.org/us-10m.v1.json"),
+    d3.json("https://d3js.org/us-10m.v1.json"), 
     d3.csv("covid_confirmed_usafacts.csv"),
     d3.csv("covid_deaths_usafacts.csv"),
     d3.csv("covid_county_population_usafacts.csv"),
     d3.csv("covid19_vaccinations_in_the_united_states.csv")
-]).then(function ([us, casesData, deathsData, populationData, vaccinationData]) {
-    // Sum the case and death data for the latest date available
-    const dateColumnsCases = getDateColumns(casesData);
-    const dateColumnsDeaths = getDateColumns(deathsData);
-    const cases = sumDataByState(casesData, dateColumnsCases);
-    const deaths = sumDataByState(deathsData, dateColumnsDeaths);
-    
-    // Aggregate population and vaccination data by state
-    const population = populationData.reduce((acc, cur) => {
-        const state = cur.State;
-        acc[state] = +cur.population;
-        return acc;
-    }, {});
+]).then(function ([us, confirmedData, deathsData, populationData, vaccinationData]) {
+    // Pre-process the data
+    const casesByState = processData(confirmedData);
+    const deathsByState = processData(deathsData);
+    const populationByState = processPopulation(populationData);
+    const vaccinationByState = processVaccination(vaccinationData);
 
-    const vaccination = vaccinationData.reduce((acc, cur) => {
-        const state = cur.Jurisdiction;
-        acc[state] = +cur["Percent of total pop with at least one dose"];
-        return acc;
-    }, {});
-
-    const dataMap = { cases, deaths, population, vaccination };
+    // Combine data into a single object
+    const dataMap = {
+        cases: casesByState,
+        deaths: deathsByState,
+        population: populationByState,
+        vaccination: vaccinationByState
+    };
 
     // Draw initial map with default data type (cases)
     drawMap(us, dataMap, "cases");
 
-    // Set up UI interaction for the dropdown
+    // Set up UI interaction
     document.getElementById('data-select').addEventListener('change', function() {
         drawMap(us, dataMap, this.value);
     });
 });
+
+// Process total cases and deaths by state
+function processData(data) {
+    const totalByState = {};
+    data.forEach(row => {
+        const state = row.State;
+        if (!totalByState[state]) {
+            totalByState[state] = 0;
+        }
+        Object.keys(row).forEach(key => {
+            if (key.match(/\d{1,2}\/\d{1,2}\/\d{2}/)) { // Matches date format MM/DD/YY
+                totalByState[state] += +row[key] || 0;
+            }
+        });
+    });
+    return totalByState;
+}
+
+// Process population data
+function processPopulation(data) {
+    const populationByState = {};
+    data.forEach(row => {
+        const state = row.State;
+        populationByState[state] = +row.population || 0;
+    });
+    return populationByState;
+}
+
+// Process vaccination data
+function processVaccination(data) {
+    const vaccinationByState = {};
+    data.forEach(row => {
+        const jurisdiction = row['Jurisdiction'];
+        vaccinationByState[jurisdiction] = +row['Percent of total pop with at least one dose'] || 0;
+    });
+    return vaccinationByState;
+}
 
 // Draw or update the map based on the dataset
 function drawMap(us, dataMap, dataType) {
@@ -88,22 +95,22 @@ function drawMap(us, dataMap, dataType) {
 
     svg.selectAll("*").remove(); // Clear previous drawings
 
-    svg.append("g")
+    const states = svg.append("g")
         .attr("class", "states")
         .selectAll("path")
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
             const stateName = d.properties.name;
-            const dataValue = dataMap[dataType][stateName];
-            return dataValue ? colorScale(dataValue) : "#ccc";
+            const stateData = dataMap[dataType][stateName];
+            return stateData ? colorScale(stateData) : "#ccc";
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
             const stateName = d.properties.name;
-            const dataValue = dataMap[dataType][stateName];
+            const stateData = dataMap[dataType][stateName];
             tooltip.style("visibility", "visible")
-                .html(`${stateName}: ${dataValue ? dataValue : "No data"}`)
+                .html(`${stateName}: ${stateData ? stateData : "No data"}`)
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
