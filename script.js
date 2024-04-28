@@ -1,3 +1,4 @@
+// app.js
 document.addEventListener('DOMContentLoaded', function() {
     const width = 960, height = 600;
 
@@ -47,11 +48,11 @@ document.addEventListener('DOMContentLoaded', function() {
         function update(view) {
             const colorScale = d3.scaleSequential();
             if (view === "cases") {
-                colorScale.interpolator(d3.interpolateBlues);
+                colorScale.interpolator(d3.interpolateBlues).domain([0, d3.max(Object.values(caseDeathData), d => d.cases)]);
             } else if (view === "deaths") {
-                colorScale.interpolator(d3.interpolateReds);
+                colorScale.interpolator(d3.interpolateReds).domain([0, d3.max(Object.values(caseDeathData), d => d.deaths)]);
             } else {
-                colorScale.interpolator(d3.interpolateGreens);
+                colorScale.interpolator(d3.interpolateGreens).domain([0, d3.max(Object.values(vaccinationData))]);
             }
 
             svg.selectAll(".state")
@@ -60,13 +61,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 .attr("class", "state")
                 .attr("d", path)
                 .attr("fill", function(d) {
-                    const data = caseDeathData[d.properties.name] || vaccinationData[d.properties.name];
-                    return colorScale(data[view]);
+                    const data = view === "vaccination" ? vaccinationData[d.properties.name] : caseDeathData[d.properties.name];
+                    return data ? colorScale(data[view]) : '#ccc';
                 })
                 .on("mouseover", function(event, d) {
-                    // Tooltip logic here
-                    console.log(`${d.properties.name}: ${caseDeathData[d.properties.name][view]}`);
+                    const data = view === "vaccination" ? vaccinationData[d.properties.name] : caseDeathData[d.properties.name];
+                    if (data) {
+                        showTooltip(event, `${d.properties.name}: ${data[view]}`);
+                    }
+                })
+                .on("mouseout", function() {
+                    hideTooltip();
                 });
+        }
+
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("position", "absolute")
+            .style("background", "#fff")
+            .style("border", "1px solid #ccc")
+            .style("padding", "10px")
+            .style("display", "none");
+
+        function showTooltip(event, text) {
+            tooltip
+                .style("display", "inline-block")
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY + 10) + "px")
+                .html(text);
+        }
+
+        function hideTooltip() {
+            tooltip.style("display", "none");
         }
     });
 });
