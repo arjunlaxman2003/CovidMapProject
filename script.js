@@ -1,4 +1,4 @@
-// app.js
+
 document.addEventListener('DOMContentLoaded', function() {
     const width = 960, height = 600;
 
