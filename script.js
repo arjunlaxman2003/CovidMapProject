@@ -113,24 +113,29 @@ function processVaccination(data) {
     return vaccinationByState;
 }
 
-/ Draw or update the map based on the dataset and time period
 function drawMap(us, dataMap, dataType, timePeriod) {
-    // Determine the selected year and month
-    const year = new Date().getFullYear();
-    const month = new Date().getMonth() + 1;
-    const currentYear = year.toString();
-    const currentMonth = `${month}-${year}`;
+    console.log("Drawing map", {us, dataMap, dataType, timePeriod}); // Debug output
 
-    // Prepare the data values depending on the selected time period
-    const dataValues = Object.values(dataMap[dataType]).flatMap(stateData => {
-        if (timePeriod === 'monthly') {
-            // Assuming the latest month's data needs to be visualized
-            return stateData.monthly[currentMonth] || 0;
-        } else {
-            // Assuming the latest complete year's data needs to be visualized
-            return stateData.yearly[currentYear] || 0;
-        }
-    });
+    const dataValues = Object.values(dataMap).flatMap(d => d[dataType]);
+    console.log("Data values", dataValues); // Check the processed data values
+
+    colorScale.domain([0, d3.max(dataValues)]); // Ensure this is calculated correctly
+    console.log("Color scale domain", colorScale.domain()); // Debug color scale domain
+
+    svg.selectAll("*").remove(); // Clear previous drawings, confirm this runs
+
+    const states = svg.append("g")
+        .attr("class", "states")
+        .selectAll("path")
+        .data(topojson.feature(us, us.objects.states).features)
+        .enter().append("path")
+        .attr("fill", d => colorScale(Math.random() * 1000)) // Use random fill to test visibility
+        .attr("d", path)
+        .attr("stroke", "black"); // Add stroke to see the outlines
+
+    console.log("States appended", states.size()); // Check how many elements are appended
+}
+
 
     colorScale.domain([0, d3.max(dataValues)]);
     svg.selectAll("*").remove(); // Clear previous drawings
