@@ -20,6 +20,54 @@ const tooltip = d3.select("body").append("div")
     .style("border-radius", "5px")
     .style("pointer-events", "none");
 
+// Process total cases and deaths by state and time period
+function processData(data, type) {
+    const result = {};
+    data.forEach(d => {
+        const state = d.State;
+        if (!result[state]) {
+            result[state] = { monthly: {}, yearly: {} };
+        }
+        Object.keys(d).forEach(dateString => {
+            if (dateString.match(/\d{1,2}\/\d{1,2}\/\d{2}/)) {
+                const [month, day, year] = dateString.split('/').map(Number);
+                const fullYear = year < 50 ? 2000 + year : 1900 + year; // Adjust based on century
+                const monthYearKey = `${month}-${fullYear}`;
+                const yearKey = fullYear.toString();
+
+                // Ensure the sub-objects exist
+                result[state].monthly[monthYearKey] = result[state].monthly[monthYearKey] || 0;
+                result[state].yearly[yearKey] = result[state].yearly[yearKey] || 0;
+
+                // Sum up the data
+                result[state].monthly[monthYearKey] += parseInt(d[dateString], 10) || 0;
+                result[state].yearly[yearKey] += parseInt(d[dateString], 10) || 0;
+            }
+        });
+    });
+    return result;
+}
+
+// Process population data
+function processPopulation(data) {
+    const populationByState = {};
+    data.forEach(d => {
+        const state = d.State;
+        populationByState[state] = parseInt(d.population, 10);
+    });
+    return populationByState;
+}
+
+// Process vaccination data
+function processVaccination(data) {
+    const vaccinationByState = {};
+    data.forEach(d => {
+        const state = d.State;
+        vaccinationByState[state] = parseFloat(d['Percent of total pop with at least one dose']);
+    });
+    return vaccinationByState;
+}
+
 // Load geographic and data files
 Promise.all([
     d3.json("https://d3js.org/us-10m.v1.json"),
@@ -46,6 +94,7 @@ Promise.all([
 
     // Initialize the map with the default view (monthly cases)
     drawMap(us, dataMap.cases.monthly, 'cases', 'monthly');
+
 
     // Event listeners for radio buttons
     document.querySelectorAll('input[name="data-type"]').forEach(radio => {
