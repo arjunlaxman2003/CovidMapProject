@@ -75,54 +75,58 @@ Promise.all([
     });
 });
 
-// Process total cases and deaths by state and time period
 function processData(data, type, periodType) {
     const result = {};
     data.forEach(d => {
-        const stateCode = d.State; // State code as per your dataset
-        if (!result[stateCode]) {
-            result[stateCode] = { monthly: {}, yearly: {} };
+        const stateCode = d.State;  // Ensure this matches the state code field in your CSV
+        const stateName = stateCodeToName[stateCode] || 'Unknown';
+        if (!result[stateName]) {
+            result[stateName] = { monthly: {}, yearly: {} };
         }
         Object.keys(d).filter(key => key.match(/\d{1,2}\/\d{1,2}\/\d{2}/)).forEach(dateString => {
             const [month, day, year] = dateString.split('/').map(Number);
-            const fullYear = year < 50 ? 2000 + year : 1900 + year; // Adjust based on century
+            const fullYear = year < 50 ? 2000 + year : 1900 + year; // Handling Y2K year format
             const monthYearKey = `${month}-${fullYear}`;
             const yearKey = fullYear.toString();
 
-            // Ensure the sub-objects exist
-            result[stateCode][periodType][monthYearKey] = result[stateCode][periodType][monthYearKey] || 0;
-            result[stateCode][periodType][yearKey] = result[stateCode][periodType][yearKey] || 0;
-
-            // Sum up the data
-            result[stateCode][periodType][monthYearKey] += parseInt(d[dateString], 10) || 0;
-            result[stateCode][periodType][yearKey] += parseInt(d[dateString], 10) || 0;
+            if (!result[stateName][periodType][monthYearKey]) {
+                result[stateName][periodType][monthYearKey] = 0;
+            }
+            if (!result[stateName][periodType][yearKey]) {
+                result[stateName][periodType][yearKey] = 0;
+            }
+            
+            result[stateName][periodType][monthYearKey] += parseInt(d[dateString], 10) || 0;
+            result[stateName][periodType][yearKey] += parseInt(d[dateString], 10) || 0;
         });
     });
     return result;
 }
 
-// Process population data
 function processPopulation(data) {
     const populationByState = {};
     data.forEach(d => {
-        const stateCode = d.State; // Using 'State' as per your dataset
-        populationByState[stateCode] = parseInt(d.population, 10);
+        const stateCode = d.State;  // Ensure this matches the state code field in your CSV
+        const stateName = stateCodeToName[stateCode];
+        populationByState[stateName] = parseInt(d.population, 10);
     });
     return populationByState;
 }
 
-// Process vaccination data
 function processVaccination(data) {
     const vaccinationByState = {};
     data.forEach(d => {
-        const stateCode = d.State; // Using 'State' as per your dataset
-        vaccinationByState[stateCode] = {
+        const stateCode = d.State;  // Ensure this matches the state code field in your CSV
+        const stateName = stateCodeToName[stateCode];
+        vaccinationByState[stateName] = {
             atLeastOneDose: parseFloat(d['Percent of total pop with at least one dose']),
             completedPrimarySeries: parseFloat(d['Percent of total pop with a completed primary series'])
         };
     });
     return vaccinationByState;
 }
+
+
 
 function drawMap(us, dataMap, dataType, timePeriod) {
     // Ensure data for the dataType and timePeriod exists
