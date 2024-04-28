@@ -76,7 +76,6 @@ Promise.all([
     });
 });
 
-
 // Process total cases and deaths by state and time period
 function processData(data, type, periodType) {
     const result = {};
