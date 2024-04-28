@@ -1,69 +1,58 @@
-/* General body styling */
 body {
-    font-family: 'Arial', sans-serif;
-    line-height: 1.6;
-    color: #333;
-    padding: 20px;
+    font-family: Arial, sans-serif;
     margin: 0;
-    background-color: #f4f4f4;
+    padding: 0;
+    background: #f4f4f4; /* Light background color for the overall page */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centers content vertically on the page */
 }
 
-/* Header styling */
-h1 {
-    color: #444;
+#controls {
     text-align: center;
+    margin: 20px;
 }
 
-/* Map container */
 #map {
-    display: block;
-    margin: 20px auto;
-    width: 960px;
-    height: 600px;
-    background-color: #fff;
-    border: 1px solid #ccc;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    width: 960px; /* Standard width adjusted to 960px for consistency */
+    height: 600px; /* Height adjusted to 600px for better display */
+    background-color: #f0f0f0; /* Light grey background to contrast the states */
+    border: 1px solid #ccc; /* Adds a subtle border around the map */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
 }
 
-/* Styling for the select dropdown */
-#dataSelect {
-    display: block;
-    width: 200px;
-    margin: 20px auto;
-    padding: 10px;
-    font-size: 16px;
-    cursor: pointer;
-    line-height: 1.5;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background-color: white;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+#data-select {
+    padding: 8px 16px; /* Padding adjusted for better clickability */
+    font-size: 16px; /* Font size for readability */
+    border: 2px solid #ccc; /* Solid border for clear boundary */
+    border-radius: 4px; /* Rounded corners for modern aesthetic */
+    cursor: pointer; /* Cursor pointer to indicate it's clickable */
+    background-color: white; /* White background for clarity */
 }
 
-/* Tooltip styling */
-.tooltip {
+#tooltip {
     position: absolute;
-    text-align: center;
-    padding: 8px;
-    font: 12px sans-serif;
-    background: lightsteelblue;
-    border: 0;
-    border-radius: 8px;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s;
+    visibility: hidden; /* Initially hidden, shown on hover */
+    padding: 10px;
+    background-color: white; /* White background to ensure readability */
+    border: 1px solid #ddd; /* Lighter border for less visual intrusion */
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.2); /* Subtle shadow for floating effect */
+    border-radius: 5px; /* Rounded corners for smooth look */
+    pointer-events: none; /* Ensures tooltip does not block map interaction */
+    z-index: 1000; /* High z-index to ensure it's on top of other elements */
+    font-size: 14px; /* Slightly smaller font size for tooltips */
+    color: #333; /* Dark grey color for better visibility */
 }
 
-/* Ensure that the tooltip text is not too small */
-.tooltip {
-    min-width: 120px;
-    color: #fff;
-    text-shadow: 1px 1px 0px rgba(0,0,0,0.3);
-}
+@media (max-width: 768px) {
+    #map {
+        width: 100%; /* Full width on smaller screens */
+        height: 400px; /* Reduced height on smaller screens for proportionality */
+    }
 
-/* SVG path for states styling */
-.state {
-    stroke: #fff;
-    stroke-width: 1;
-    stroke-linejoin: round;
+    #data-select {
+        width: 90%; /* Makes select wider on smaller screens */
+        padding: 8px 10px; /* Adjust padding for smaller space */
+        font-size: 14px; /* Adjust font size for smaller screens */
+    }
 }
