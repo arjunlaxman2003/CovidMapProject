@@ -2,21 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>COVID-19 Data Visualization</title>
-    <link rel="stylesheet" href="style.css">
+    <title>CDC COVID-19 Data Viewer</title>
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <script src="https://d3js.org/topojson.v3.min.js"></script>
+    <style>
+        /* Add styles here for differentiating the views with unique colors */
+        .cases { fill: blue; }
+        .deaths { fill: red; }
+        .vaccination { fill: green; }
+    </style>
 </head>
 <body>
-    <div id="controls">
-        <label><input type="radio" name="data-type" value="cases" checked> Cases</label>
-        <label><input type="radio" name="data-type" value="deaths"> Deaths</label>
-        <label><input type="radio" name="data-type" value="vaccination"> Vaccination Rate</label>
-        <br>
-        <label><input type="radio" name="time-period" value="monthly" checked> Monthly</label>
-        <label><input type="radio" name="time-period" value="yearly"> Yearly</label>
-    </div>
+    <h1>CDC COVID-19 Data Viewer</h1>
+    <select id="dataSelect">
+        <option value="cases">Cases</option>
+        <option value="deaths">Deaths</option>
+        <option value="vaccination">Vaccination Progress</option>
+    </select>
+
     <div id="map"></div>
-    <script src="script.js"></script>
+
+    <script src="app.js"></script>
 </body>
 </html>
