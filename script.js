@@ -118,11 +118,11 @@ function drawMap(us, dataMap, dataType, timePeriod) {
     const currentYear = year.toString();
     const currentMonth = `${month}-${year}`;
 
-    const dataValues = Object.values(dataMap[dataType]).flatMap(stateData => {
+    const dataValues = Object.values(dataMap[dataType] || {}).flatMap(stateData => {
         if (timePeriod === 'monthly') {
-            return stateData.monthly[currentMonth] || 0;
+            return stateData && stateData.monthly[currentMonth] ? stateData.monthly[currentMonth] : 0;
         } else {
-            return stateData.yearly[currentYear] || 0;
+            return stateData && stateData.yearly[currentYear] ? stateData.yearly[currentYear] : 0;
         }
     });
 
@@ -136,13 +136,13 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .enter().append("path")
         .attr("fill", d => {
             const stateData = dataMap[dataType][d.properties.name];
-            const value = stateData ? (timePeriod === 'monthly' ? stateData.monthly : stateData.yearly) : 0;
+            const value = stateData ? (timePeriod === 'monthly' ? (stateData.monthly[currentMonth] || 0) : (stateData.yearly[currentYear] || 0)) : 0;
             return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
             const stateData = dataMap[dataType][d.properties.name];
-            const value = stateData ? (timePeriod === 'monthly' ? stateData.monthly : stateData.yearly) : "No data";
+            const value = stateData ? (timePeriod === 'monthly' ? (stateData.monthly[currentMonth] || "No data") : (stateData.yearly[currentYear] || "No data")) : "No data";
             tooltip.style("visibility", "visible")
                 .html(`${d.properties.name}: ${value}`)
                 .style("left", (event.pageX + 10) + "px")
