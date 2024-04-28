@@ -132,12 +132,26 @@ function processVaccination(data) {
 }
 
 function drawMap(us, dataMap, dataType, timePeriod) {
+    if (!dataMap || !dataMap[dataType]) {
+        console.error("Data map not initialized or data type not present:", dataType);
+        return; // Exit if dataMap is not correctly initialized
+    }
+
     const year = new Date().getFullYear();
     const month = new Date().getMonth() + 1;
     const currentMonth = `${month}-${year}`;
 
-    // Set domain for color scaling based on data values
-    colorScale.domain([0, d3.max(Object.values(dataMap[dataType]).flatMap(stateData => Object.values(stateData[timePeriod])))]);
+    try {
+        const dataValues = Object.values(dataMap[dataType]).flatMap(stateData => {
+            return Object.values(stateData[timePeriod] || {});
+        });
+
+        colorScale.domain([0, d3.max(dataValues)]);
+    } catch (error) {
+        console.error("Error processing data values:", error);
+        return; // Exit if there is an error in processing data values
+    }
+
     svg.selectAll("*").remove(); // Clear previous drawings
 
     svg.append("g")
@@ -146,14 +160,16 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateName = stateCodeToName[d.properties.states]; // Adjust to use the 'states' property
+            const stateCode = d.properties.states; // This needs to match the actual property used in the TopoJSON
+            const stateName = stateCodeToName[stateCode];
             const stateData = dataMap[dataType][stateName];
             const value = stateData ? stateData[timePeriod] : 0;
-            return colorScale(value);
+            return colorScale(value || 0);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateName = stateCodeToName[d.properties.states]; // Adjust to use the 'states' property
+            const stateCode = d.properties.states;
+            const stateName = stateCodeToName[stateCode];
             const stateData = dataMap[dataType][stateName];
             const value = stateData ? stateData[timePeriod] : "No data";
             tooltip.style("visibility", "visible")
@@ -170,3 +186,24 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
 }
+
+// Add console.log to check outputs in the data processing functions
+function processData(data, type, periodType) {
+    const result = {};
+    data.forEach(d => {
+        const state = d.State;
+        if (!result[state]) {
+            result[state] = { monthly: {}, yearly: {} };
+        }
+        Object.keys(d).filter(key => key.match(/\d{1,2}\/\d{1,2}\/\d{2}/)).forEach(dateString => {
+            const [month, day, year] = dateString.split('/').map(Number);
+            const fullYear = year < 50 ? 2000 + year : 1900 + year; // Adjust based on century
+            const monthYearKey = `${month}-${fullYear}`;
+            const yearKey = fullYear.toString();
+
+            // Ensure the sub-objects exist
+            result[state][periodType][monthYearKey] = result[state][periodType][monthYearKey] || 0;
+            result[state][periodType][yearKey] = result[state][periodType][yearKey] || 0;
+
+            // Sum up the data
+            result[state][periodType][month
