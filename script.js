@@ -4,6 +4,7 @@ const colorScheme = d3.schemeReds[6];
 const colorScale = d3.scaleQuantize().range(colorScheme);
 const path = d3.geoPath();
 
+// Adjusted mapping of state codes to names
 const stateCodeToName = {
     "AK": "Alaska", "AL": "Alabama", "AR": "Arkansas", "AZ": "Arizona",
     "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DC": "District of Columbia",
@@ -74,6 +75,7 @@ Promise.all([
         });
     });
 });
+
 
 // Process total cases and deaths by state and time period
 function processData(data, type, periodType) {
