@@ -1,36 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>CDC COVID-19 Dashboard</title>
+    <title>CDC COVID-19 Data Visualization</title>
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <script src="https://d3js.org/topojson.v3.min.js"></script>
-    <style>
-        .state {
-            stroke: #fff;
-            stroke-width: 1px;
-        }
-        .tooltip {
-            position: absolute;
-            text-align: center;
-            padding: 8px;
-            font: 12px sans-serif;
-            background: white;
-            border: 0px;
-            border-radius: 8px;
-            pointer-events: none;
-            opacity: 0;
-        }
-    </style>
 </head>
 <body>
+    <h1>CDC COVID-19 Data Visualization</h1>
     <select id="dataSelect">
         <option value="cases">Cases</option>
         <option value="deaths">Deaths</option>
-        <option value="vaccination">Vaccination Progress</option>
+        <option value="vaccinations">Vaccination Progress</option>
     </select>
     <div id="map"></div>
-    <div class="tooltip"></div>
+
     <script src="script.js"></script>
 </body>
 </html>
