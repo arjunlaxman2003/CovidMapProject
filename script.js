@@ -125,9 +125,15 @@ function processVaccination(data) {
 }
 
 function drawMap(us, dataMap, dataType, timePeriod) {
+    // Ensure data for the dataType and timePeriod exists
+    if (!dataMap[dataType]) {
+        console.error('No data available for', dataType);
+        return; // Exit if data is not available
+    }
+
     let dataValues = [];
-    if (dataMap && dataMap[dataType]) {
-        dataValues = Object.values(dataMap[dataType]).flatMap(stateData => stateData ? Object.values(stateData[timePeriod] || {}) : []);
+    if (dataMap[dataType]) {
+        dataValues = Object.values(dataMap[dataType]).flatMap(stateData => stateData && stateData[timePeriod] ? Object.values(stateData[timePeriod]) : []);
     }
     colorScale.domain([0, d3.max(dataValues)]);
 
@@ -139,20 +145,24 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            // Debug to inspect the structure of `d`
-            console.log(d);
+            console.log(d); // Log the feature object to see available properties
+            const stateCode = d.id || (d.properties ? d.properties.id : null); // Adjusted to handle both possible locations of id
 
-            const stateCode = d.id; // Verify if 'id' or 'properties.id' should be used
-            const stateName = stateCodeToName[stateCode];
-            const stateData = stateName ? dataMap[dataType][stateName] : null;
+            if (!stateCode) {
+                console.error('No state code found for', d);
+                return 'gray'; // Return a default color if no state code is found
+            }
+
+            const stateName = stateCodeToName[stateCode] || 'Unknown';
+            const stateData = dataMap[dataType][stateName];
             const value = stateData && stateData[timePeriod] ? stateData[timePeriod] : 0;
             return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateCode = d.id;
+            const stateCode = d.id || (d.properties ? d.properties.id : null);
             const stateName = stateCodeToName[stateCode] || 'Unknown';
-            const stateData = stateName ? dataMap[dataType][stateName] : null;
+            const stateData = dataMap[dataType][stateName];
             const value = stateData && stateData[timePeriod] ? stateData[timePeriod] : "No data";
             tooltip.style("visibility", "visible")
                    .html(`${stateName}: ${value}`)
