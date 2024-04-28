@@ -1,19 +1,23 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>CDC COVID-19 Data Visualization</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COVID-19 Data Visualization</title>
+    <link rel="stylesheet" href="style.css">
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <script src="https://d3js.org/topojson.v3.min.js"></script>
 </head>
 <body>
-    <h1>CDC COVID-19 Data Visualization</h1>
-    <select id="dataSelect">
-        <option value="cases">Cases</option>
-        <option value="deaths">Deaths</option>
-        <option value="vaccinations">Vaccination Progress</option>
-    </select>
+    <h1>COVID-19 Data Visualization</h1>
+    <div>
+        <select id="dataSelect">
+            <option value="cases">Cases</option>
+            <option value="deaths">Deaths</option>
+            <option value="vaccinations">Vaccination Progress</option>
+        </select>
+    </div>
     <div id="map"></div>
-
     <script src="script.js"></script>
 </body>
 </html>
