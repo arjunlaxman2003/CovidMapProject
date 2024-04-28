@@ -1,58 +1,69 @@
-/* Basic styling for the entire page */
+/* General body styling */
 body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    padding: 0;
-    background: #f4f4f4;
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    padding: 20px;
+    margin: 0;
+    background-color: #f4f4f4;
 }
 
 /* Header styling */
 h1 {
-    color: #333;
+    color: #444;
     text-align: center;
 }
 
-/* SVG map styling */
-svg {
-    display: block;
-    margin: auto;
-    background: #fff;
-    border: 1px solid #ccc;
-}
-
-/* Dropdown menu styling */
-#dataSelect {
+/* Map container */
+#map {
     display: block;
     margin: 20px auto;
-    padding: 10px;
+    width: 960px;
+    height: 600px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+/* Styling for the select dropdown */
+#dataSelect {
+    display: block;
     width: 200px;
+    margin: 20px auto;
+    padding: 10px;
     font-size: 16px;
     cursor: pointer;
+    line-height: 1.5;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
 }
 
 /* Tooltip styling */
 .tooltip {
     position: absolute;
-    background-color: white;
-    border: 1px solid #ddd;
-    padding: 10px;
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    text-align: center;
+    padding: 8px;
+    font: 12px sans-serif;
+    background: lightsteelblue;
+    border: 0;
+    border-radius: 8px;
     pointer-events: none;
-    z-index: 10;
-    display: none;
-    font-size: 14px;
-    color: #333;
+    opacity: 0;
+    transition: opacity 0.3s;
 }
 
-/* Styling for different views of cases, deaths, and vaccination */
-.cases { 
-    fill: blue; /* Color for cases view */
+/* Ensure that the tooltip text is not too small */
+.tooltip {
+    min-width: 120px;
+    color: #fff;
+    text-shadow: 1px 1px 0px rgba(0,0,0,0.3);
 }
 
-.deaths {
-    fill: red; /* Color for deaths view */
-}
-
-.vaccination {
-    fill: green; /* Color for vaccination view */
+/* SVG path for states styling */
+.state {
+    stroke: #fff;
+    stroke-width: 1;
+    stroke-linejoin: round;
 }
