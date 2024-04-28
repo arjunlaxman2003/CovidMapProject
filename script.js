@@ -113,18 +113,31 @@ function processVaccination(data) {
 
 // Draw or update the map based on the dataset and time period
 function drawMap(us, dataMap, dataType, timePeriod) {
+    console.log("Data Map:", dataMap); // Debug: Log the complete data map
+    console.log("Data Type:", dataType);
+    console.log("Time Period:", timePeriod);
+
     const year = new Date().getFullYear();
     const month = new Date().getMonth() + 1;
     const currentYear = year.toString();
     const currentMonth = `${month}-${year}`;
 
-    const dataValues = Object.values(dataMap[dataType] || {}).flatMap(stateData => {
+    if (!dataMap || !dataMap[dataType]) {
+        console.error("Data map or type is undefined.", dataMap);
+        return; // Exit the function if data is undefined
+    }
+
+    const dataValues = Object.values(dataMap[dataType]).flatMap(stateData => {
         if (timePeriod === 'monthly') {
             return stateData && stateData.monthly[currentMonth] ? stateData.monthly[currentMonth] : 0;
         } else {
             return stateData && stateData.yearly[currentYear] ? stateData.yearly[currentYear] : 0;
         }
     });
+
+    if (dataValues.length === 0) {
+        console.error("No data values available for the map.");
+    }
 
     colorScale.domain([0, d3.max(dataValues)]);
     svg.selectAll("*").remove(); // Clear previous drawings
