@@ -28,88 +28,144 @@ Promise.all([
     d3.csv("covid_county_population_usafacts.csv"),
     d3.csv("covid19_vaccinations_in_the_united_states.csv")
 ]).then(function ([us, confirmedData, deathsData, populationData, vaccinationData]) {
-    // Process and combine data
-    const casesByState = processData(confirmedData, 'State', 'cases');
-    const deathsByState = processData(deathsData, 'State', 'deaths');
+    // Initialize data maps for monthly and yearly cases/deaths
+    const casesByStateMonthly = processData(confirmedData, 'cases', 'monthly');
+    const deathsByStateMonthly = processData(deathsData, 'deaths', 'monthly');
+    const casesByStateYearly = processData(confirmedData, 'cases', 'yearly');
+    const deathsByStateYearly = processData(deathsData, 'deaths', 'yearly');
     const populationByState = processPopulation(populationData);
     const vaccinationByState = processVaccination(vaccinationData);
 
-    // Combine data into a single object for easy access
-    const dataMap = { casesByState, deathsByState, populationByState, vaccinationByState };
+    // Combine data into a single object
+    const dataMap = {
+        cases: { monthly: casesByStateMonthly, yearly: casesByStateYearly },
+        deaths: { monthly: deathsByStateMonthly, yearly: deathsByStateYearly },
+        population: populationByState,
+        vaccination: vaccinationByState
+    };
 
-    // Initialize the map with the default view (cases)
-    drawMap(us, dataMap.casesByState, 'cases');
+    // Initialize the map with the default view (monthly cases)
+    drawMap(us, dataMap.cases.monthly, 'cases', 'monthly');
 
-    // Setup event listeners for UI controls (if any)
+    // Event listeners for radio buttons
+    document.querySelectorAll('input[name="data-type"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            // Fetch the current time period
+            const timePeriod = document.querySelector('input[name="time-period"]:checked').value;
+            drawMap(us, dataMap[this.value][timePeriod], this.value, timePeriod);
+        });
+    });
+
+    document.querySelectorAll('input[name="time-period"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            // Fetch the current data type
+            const dataType = document.querySelector('input[name="data-type"]:checked').value;
+            drawMap(us, dataMap[dataType][this.value], dataType, this.value);
+        });
+    });
 });
 
-// Data processing functions
-function processData(data, stateField, dataType) {
+// Process total cases and deaths by state and time period
+function processData(data, type) {
     const result = {};
     data.forEach(d => {
-        const state = d[stateField];
+        const state = d.State;
         if (!result[state]) {
-            result[state] = {};
+            result[state] = { monthly: {}, yearly: {} };
         }
-        Object.keys(d).forEach(date => {
-            if (date.match(/\d{1,2}\/\d{1,2}\/\d{2}/)) {  // Only process date fields
-                result[state][date] = parseInt(d[date], 10) || 0;
+        Object.keys(d).forEach(dateString => {
+            if (dateString.match(/\d{1,2}\/\d{1,2}\/\d{2}/)) {
+                const [month, day, year] = dateString.split('/').map(Number);
+                const fullYear = year < 50 ? 2000 + year : 1900 + year; // Adjust based on century
+                const monthYearKey = `${month}-${fullYear}`;
+                const yearKey = fullYear.toString();
+
+                // Ensure the sub-objects exist
+                result[state].monthly[monthYearKey] = result[state].monthly[monthYearKey] || 0;
+                result[state].yearly[yearKey] = result[state].yearly[yearKey] || 0;
+
+                // Sum up the data
+                result[state].monthly[monthYearKey] += parseInt(d[dateString], 10) || 0;
+                result[state].yearly[yearKey] += parseInt(d[dateString], 10) || 0;
             }
         });
     });
     return result;
 }
 
+// Process population data
 function processPopulation(data) {
-    const result = {};
+    const populationByState = {};
     data.forEach(d => {
-        result[d.State] = parseInt(d.population, 10);
+        const state = d.State;
+        populationByState[state] = parseInt(d.population, 10);
     });
-    return result;
+    return populationByState;
 }
 
+// Process vaccination data
 function processVaccination(data) {
-    const result = {};
+    const vaccinationByState = {};
     data.forEach(d => {
-        result[d.State] = {
-            percentVaccinated: parseFloat(d['Percent of total pop with at least one dose'])
-        };
+        const state = d.State;
+        vaccinationByState[state] = parseFloat(d['Percent of total pop with at least one dose']);
     });
-    return result;
+    return vaccinationByState;
 }
 
-// Map drawing function
-function drawMap(us, dataMap, dataType) {
-    // Set domain for color scale based on data type
-    const values = Object.values(dataMap).flatMap(stateData => Object.values(stateData));
-    colorScale.domain([0, d3.max(values)]);
+// Draw or update the map based on the dataset and time period
+function drawMap(us, dataMap, dataType, timePeriod) {
+    // Determine the selected year and month
+    const year = new Date().getFullYear();
+    const month = new Date().getMonth() + 1;
+    const currentYear = year.toString();
+    const currentMonth = `${month}-${year}`;
 
-    // Clear previous SVG elements
-    svg.selectAll("*").remove();
+    // Prepare the data values depending on the selected time period
+    const dataValues = Object.values(dataMap[dataType]).flatMap(stateData => {
+        if (timePeriod === 'monthly') {
+            // Assuming the latest month's data needs to be visualized
+            return stateData.monthly[currentMonth] || 0;
+        } else {
+            // Assuming the latest complete year's data needs to be visualized
+            return stateData.yearly[currentYear] || 0;
+        }
+    });
 
-    // Draw states with color based on data
+    colorScale.domain([0, d3.max(dataValues)]);
+    svg.selectAll("*").remove(); // Clear previous drawings
+
     svg.append("g")
         .attr("class", "states")
         .selectAll("path")
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateData = dataMap[d.properties.name];
-            const value = stateData ? stateData[Object.keys(stateData).pop()] : 0;  // Get the most recent value
+            // Extract state data based on the selected time period
+            const stateData = dataMap[dataType][d.properties.name];
+            const value = stateData ? (timePeriod === 'monthly' ? stateData.monthly : stateData.yearly) : 0;
             return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
+            // Display data in tooltip
+            const stateData = dataMap[dataType][d.properties.name];
+            const value = stateData ? (timePeriod === 'monthly' ? stateData.monthly : stateData.yearly) : "No data";
             tooltip.style("visibility", "visible")
-                   .html(`${d.properties.name}: ${dataMap[d.properties.name][Object.keys(dataMap[d.properties.name]).pop()]}`)
-                   .style("left", `${event.pageX + 10}px`)
-                   .style("top", `${event.pageY - 28}px`);
+                .html(`${d.properties.name}: ${value}`)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
         })
-        .on("mouseout", () => tooltip.style("visibility", "hidden"));
+        .on("mousemove", (event) => {
+            tooltip.style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", () => {
+            tooltip.style("visibility", "hidden");
+        });
 
     // Draw state borders
     svg.append("path")
-        .datum(topojson.mesh(us, us.objects.states, (a, b) => a !== b))
         .attr("class", "state-borders")
-        .attr("d", path);
+        .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
 }
