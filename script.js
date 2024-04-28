@@ -117,10 +117,13 @@ function drawMap(us, dataMap, dataType, timePeriod) {
     const currentYear = year.toString();
     const currentMonth = `${month}-${year}`;
 
-    const dataValues = Object.values(dataMap[dataType]).flatMap(stateData => {
-        // Safe access with default for missing state data
-        return stateData ? (timePeriod === 'monthly' ? stateData.monthly[currentMonth] : stateData.yearly[currentYear]) : 0;
-    });
+    // Ensure that all data values are properly initialized to avoid errors
+    const dataValues = [];
+    for (const state in dataMap[dataType]) {
+        const stateData = dataMap[dataType][state];
+        const value = stateData && stateData[timePeriod] ? (stateData[timePeriod][currentMonth] || stateData[timePeriod][currentYear] || 0) : 0;
+        dataValues.push(value);
+    }
 
     colorScale.domain([0, d3.max(dataValues)]);
     svg.selectAll("*").remove(); // Clear previous drawings
@@ -132,13 +135,13 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .enter().append("path")
         .attr("fill", d => {
             const stateData = dataMap[dataType][d.properties.name] || {};
-            const value = (timePeriod === 'monthly' ? stateData.monthly[currentMonth] : stateData.yearly[currentYear]) || 0;
+            const value = stateData[timePeriod] ? (stateData[timePeriod][currentMonth] || stateData[timePeriod][currentYear] || 0) : 0;
             return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
             const stateData = dataMap[dataType][d.properties.name] || {};
-            const value = (timePeriod === 'monthly' ? stateData.monthly[currentMonth] : stateData.yearly[currentYear]) || "No data";
+            const value = stateData[timePeriod] ? (stateData[timePeriod][currentMonth] || stateData[timePeriod][currentYear] || "No data") : "No data";
             tooltip.style("visibility", "visible")
                 .html(`${d.properties.name}: ${value}`)
                 .style("left", `${event.pageX + 10}px`)
