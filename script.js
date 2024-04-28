@@ -117,21 +117,27 @@ function drawMap(us, dataMap, dataType, timePeriod) {
     const currentYear = year.toString();
     const currentMonth = `${month}-${year}`;
 
-    // Ensure that all data values are properly initialized to avoid errors
-    const dataValues = [];
-    for (const state in dataMap[dataType]) {
-        const stateData = dataMap[dataType][state];
-        const value = stateData && stateData[timePeriod] ? (stateData[timePeriod][currentMonth] || stateData[timePeriod][currentYear] || 0) : 0;
-        dataValues.push(value);
-    }
-
-    colorScale.domain([0, d3.max(dataValues)]);
+    // Properly initializing and ensuring no undefined or null objects are accessed
+    let maxDataValue = 0;
     svg.selectAll("*").remove(); // Clear previous drawings
+
+    const statesFeatures = topojson.feature(us, us.objects.states).features;
+    const dataValues = statesFeatures.map(feature => {
+        const stateData = dataMap[dataType][feature.properties.name];
+        if (stateData && stateData[timePeriod]) {
+            const value = stateData[timePeriod][currentMonth] || stateData[timePeriod][currentYear] || 0;
+            maxDataValue = Math.max(maxDataValue, value);
+            return value;
+        }
+        return 0;
+    });
+
+    colorScale.domain([0, maxDataValue]);
 
     svg.append("g")
         .attr("class", "states")
         .selectAll("path")
-        .data(topojson.feature(us, us.objects.states).features)
+        .data(statesFeatures)
         .enter().append("path")
         .attr("fill", d => {
             const stateData = dataMap[dataType][d.properties.name] || {};
