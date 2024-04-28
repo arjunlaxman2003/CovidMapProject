@@ -4,6 +4,23 @@ const colorScheme = d3.schemeReds[6];
 const colorScale = d3.scaleQuantize().range(colorScheme);
 const path = d3.geoPath();
 
+const stateCodeToName = {
+    "AK": "Alaska", "AL": "Alabama", "AR": "Arkansas", "AZ": "Arizona",
+    "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DC": "District of Columbia",
+    "DE": "Delaware", "FL": "Florida", "GA": "Georgia", "HI": "Hawaii",
+    "IA": "Iowa", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana",
+    "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "MA": "Massachusetts",
+    "MD": "Maryland", "ME": "Maine", "MI": "Michigan", "MN": "Minnesota",
+    "MO": "Missouri", "MS": "Mississippi", "MT": "Montana", "NC": "North Carolina",
+    "ND": "North Dakota", "NE": "Nebraska", "NH": "New Hampshire", "NJ": "New Jersey",
+    "NM": "New Mexico", "NV": "Nevada", "NY": "New York", "OH": "Ohio",
+    "OK": "Oklahoma", "OR": "Oregon", "PA": "Pennsylvania", "RI": "Rhode Island",
+    "SC": "South Carolina", "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas",
+    "UT": "Utah", "VA": "Virginia", "VT": "Vermont", "WA": "Washington",
+    "WI": "Wisconsin", "WV": "West Virginia", "WY": "Wyoming"
+};
+
+
 // Append SVG to the map container
 const svg = d3.select("#map").append("svg")
     .attr("width", width)
@@ -114,26 +131,12 @@ function processVaccination(data) {
     return vaccinationByState;
 }
 
-// Draw or update the map based on the dataset and time period
 function drawMap(us, dataMap, dataType, timePeriod) {
-    // Determine the selected year and month
     const year = new Date().getFullYear();
     const month = new Date().getMonth() + 1;
-    const currentYear = year.toString();
     const currentMonth = `${month}-${year}`;
 
-    // Prepare the data values depending on the selected time period
-    const dataValues = Object.values(dataMap[dataType]).flatMap(stateData => {
-        if (timePeriod === 'monthly') {
-            // Assuming the latest month's data needs to be visualized
-            return stateData.monthly[currentMonth] || 0;
-        } else {
-            // Assuming the latest complete year's data needs to be visualized
-            return stateData.yearly[currentYear] || 0;
-        }
-    });
-
-    colorScale.domain([0, d3.max(dataValues)]);
+    colorScale.domain([0, d3.max(Object.values(dataMap[dataType]).flatMap(stateData => Object.values(stateData[timePeriod])))]);
     svg.selectAll("*").remove(); // Clear previous drawings
 
     svg.append("g")
@@ -142,18 +145,18 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            // Extract state data based on the selected time period
-            const stateData = dataMap[dataType][d.properties.name];
-            const value = stateData ? (timePeriod === 'monthly' ? stateData.monthly : stateData.yearly) : 0;
+            const stateName = stateCodeToName[d.properties.name];
+            const stateData = dataMap[dataType][stateName];
+            const value = stateData ? stateData[timePeriod] : 0;
             return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            // Display data in tooltip
-            const stateData = dataMap[dataType][d.properties.name];
-            const value = stateData ? (timePeriod === 'monthly' ? stateData.monthly : stateData.yearly) : "No data";
+            const stateName = stateCodeToName[d.properties.name];
+            const stateData = dataMap[dataType][stateName];
+            const value = stateData ? stateData[timePeriod] : "No data";
             tooltip.style("visibility", "visible")
-                .html(`${d.properties.name}: ${value}`)
+                .html(`${stateName}: ${value}`)
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
