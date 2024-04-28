@@ -127,7 +127,7 @@ function processVaccination(data) {
 function drawMap(us, dataMap, dataType, timePeriod) {
     let dataValues = [];
     if (dataMap && dataMap[dataType]) {
-        dataValues = Object.values(dataMap[dataType]).flatMap(stateData => Object.values(stateData[timePeriod] || {}));
+        dataValues = Object.values(dataMap[dataType]).flatMap(stateData => stateData ? Object.values(stateData[timePeriod] || {}) : []);
     }
     colorScale.domain([0, d3.max(dataValues)]);
 
@@ -139,8 +139,10 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            // Ensure the property key used for state code is correct
-            const stateCode = d.id;  // Commonly 'id' is used in TopoJSON files for state codes
+            // Debug to inspect the structure of `d`
+            console.log(d);
+
+            const stateCode = d.id; // Verify if 'id' or 'properties.id' should be used
             const stateName = stateCodeToName[stateCode];
             const stateData = stateName ? dataMap[dataType][stateName] : null;
             const value = stateData && stateData[timePeriod] ? stateData[timePeriod] : 0;
@@ -148,7 +150,7 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateCode = d.id;  // Again, ensure 'id' is the correct property
+            const stateCode = d.id;
             const stateName = stateCodeToName[stateCode] || 'Unknown';
             const stateData = stateName ? dataMap[dataType][stateName] : null;
             const value = stateData && stateData[timePeriod] ? stateData[timePeriod] : "No data";
