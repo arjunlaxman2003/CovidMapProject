@@ -7,38 +7,47 @@ const tooltip = d3.select("body").append("div").attr("class", "tooltip");
 let projection = d3.geoAlbersUsa().scale(1300).translate([width / 2, height / 2]);
 let path = d3.geoPath().projection(projection);
 
-let dataMap; // Define dataMap outside the d3.csv to have global access
+// Define dataMap globally
+let dataMap = new Map();
 
 // Load data and US map
-d3.csv("Data.csv").then(data => {
-    dataMap = new Map(data.map(d => [d.State, d])); // Ensure dataMap is accessible
+Promise.all([
+    d3.csv("Data.csv"),
+    d3.json("https://d3js.org/us-10m.v1.json")
+]).then(([data, us]) => {
+    // Initialize dataMap with data
+    data.forEach(d => dataMap.set(d.State, d));
 
-    d3.json("https://d3js.org/us-10m.v1.json").then(us => {
-        const states = topojson.feature(us, us.objects.states).features;
+    const states = topojson.feature(us, us.objects.states).features;
 
-        svg.selectAll(".state")
-            .data(states)
-            .enter().append("path")
-            .attr("class", "state")
-            .attr("d", path)
-            .on("mouseover", (event, d) => {
-                const stateData = dataMap.get(d.properties.name);
-                tooltip.style("opacity", 1)
-                    .html(`State: ${d.properties.name}<br>Cases: ${stateData.Cases}<br>Deaths: ${stateData.Deaths}<br>Vaccination: ${stateData.Doses}`)
-                    .style("left", (event.pageX + 5) + "px")
-                    .style("top", (event.pageY - 28) + "px");
-            })
-            .on("mouseout", () => tooltip.style("opacity", 0));
+    svg.selectAll(".state")
+        .data(states)
+        .enter().append("path")
+        .attr("class", "state")
+        .attr("d", path)
+        .attr("fill", d => colorScaleCases(dataMap.get(d.properties.name)?.Cases || 0))  // Default fill on initial load
+        .on("mouseover", (event, d) => {
+            const stateData = dataMap.get(d.properties.name);
+            tooltip.style("opacity", 1)
+                .html(`State: ${d.properties.name}<br>Cases: ${stateData?.Cases}<br>Deaths: ${stateData?.Deaths}<br>Vaccination: ${stateData?.Doses}`)
+                .style("left", (event.pageX + 5) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", () => tooltip.style("opacity", 0));
 
-        updateView("cases"); // Initial view setup
+    // Update colors based on selection
+    d3.select("#dataSelect").on("change", function() {
+        updateView(this.value);
     });
 });
 
-// Update map colors based on selected view
 function updateView(view) {
     svg.selectAll(".state")
+        .transition()
+        .duration(250)
         .attr("fill", d => {
             const data = dataMap.get(d.properties.name);
+            if (!data) return "#ccc";  // Fallback color for missing data
             switch (view) {
                 case "cases":
                     return colorScaleCases(data.Cases);
@@ -50,19 +59,15 @@ function updateView(view) {
         });
 }
 
-d3.select("#dataSelect").on("change", function() {
-    updateView(this.value);
-});
-
-// Color scales
+// Color scale functions
 function colorScaleCases(value) {
-    return d3.scaleSequential(d3.interpolateReds)(value / 100000);
+    return d3.scaleSequential(d3.interpolateReds)(Math.min(value / 100000, 1));
 }
 
 function colorScaleDeaths(value) {
-    return d3.scaleSequential(d3.interpolateBlues)(value / 1000);
+    return d3.scaleSequential(d3.interpolateBlues)(Math.min(value / 1000, 1));
 }
 
 function colorScaleVaccinations(value) {
-    return d3.scaleSequential(d3.interpolateGreens)(value / 1000000);
+    return d3.scaleSequential(d3.interpolateGreens)(Math.min(value / 1000000, 1));
 }
