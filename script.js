@@ -28,6 +28,7 @@ Promise.all([
     d3.csv("covid_county_population_usafacts.csv"),
     d3.csv("covid19_vaccinations_in_the_united_states.csv")
 ]).then(function ([us, confirmedData, deathsData, populationData, vaccinationData]) {
+    console.log(us.objects.states.geometries.map(d => d.properties));
     // Initialize data maps for monthly and yearly cases/deaths
     const casesByStateMonthly = processData(confirmedData, 'cases', 'monthly');
     const deathsByStateMonthly = processData(deathsData, 'deaths', 'monthly');
