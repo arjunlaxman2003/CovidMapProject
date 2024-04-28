@@ -145,15 +145,17 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            console.log(d); // Log the feature object to see available properties
             const stateCode = d.id || (d.properties ? d.properties.id : null); // Adjusted to handle both possible locations of id
+            console.log('State Code:', stateCode); // Log the state code
 
-            if (!stateCode) {
-                console.error('No state code found for', d);
-                return 'gray'; // Return a default color if no state code is found
+            const stateName = stateCodeToName[stateCode];
+            console.log('State Name:', stateName); // Log the mapped state name
+
+            if (!stateName) {
+                console.error('No state name found for state code:', stateCode);
+                return 'gray'; // Return a default color if no state name is mapped
             }
 
-            const stateName = stateCodeToName[stateCode] || 'Unknown';
             const stateData = dataMap[dataType][stateName];
             const value = stateData && stateData[timePeriod] ? stateData[timePeriod] : 0;
             return colorScale(value);
