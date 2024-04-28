@@ -20,14 +20,14 @@ const tooltip = d3.select("body").append("div")
     .style("border-radius", "5px")
     .style("pointer-events", "none");
 
-// Load geographic and data files
-Promise.all([
-    d3.json("https://d3js.org/us-10m.v1.json"),
-    d3.csv("covid_confirmed_usafacts.csv"),
-    d3.csv("covid_deaths_usafacts.csv"),
-    d3.csv("covid_county_population_usafacts.csv"),
-    d3.csv("covid19_vaccinations_in_the_united_states.csv")
-]).then(function ([us, confirmedData, deathsData, populationData, vaccinationData]) {
+document.addEventListener('DOMContentLoaded', function () {
+    Promise.all([
+        d3.json("https://d3js.org/us-10m.v1.json"),
+        d3.csv("covid_confirmed_usafacts.csv"),
+        d3.csv("covid_deaths_usafacts.csv"),
+        d3.csv("covid_county_population_usafacts.csv"),
+        d3.csv("covid19_vaccinations_in_the_united_states.csv")
+    ]).then(function ([us, confirmedData, deathsData, populationData, vaccinationData]) {
     // Initialize data maps for monthly and yearly cases/deaths
     const casesByStateMonthly = processData(confirmedData, 'cases', 'monthly');
     const deathsByStateMonthly = processData(deathsData, 'deaths', 'monthly');
@@ -48,22 +48,22 @@ Promise.all([
     drawMap(us, dataMap.cases.monthly, 'cases', 'monthly');
 
     // Event listeners for radio buttons
-    document.querySelectorAll('input[name="data-type"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            // Fetch the current time period
-            const timePeriod = document.querySelector('input[name="time-period"]:checked').value;
-            drawMap(us, dataMap[this.value][timePeriod], this.value, timePeriod);
+        document.querySelectorAll('input[name="data-type"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const timePeriod = document.querySelector('input[name="time-period"]:checked').value;
+                drawMap(us, dataMap[this.value][timePeriod], this.value, timePeriod);
+            });
         });
-    });
 
-    document.querySelectorAll('input[name="time-period"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            // Fetch the current data type
-            const dataType = document.querySelector('input[name="data-type"]:checked').value;
-            drawMap(us, dataMap[dataType][this.value], dataType, this.value);
+        document.querySelectorAll('input[name="time-period"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const dataType = document.querySelector('input[name="data-type"]:checked').value;
+                drawMap(us, dataMap[dataType][this.value], dataType, this.value);
+            });
         });
-    });
+    }).catch(error => console.error("Error loading or processing data:", error));
 });
+
 
 // Process total cases and deaths by state and time period
 function processData(data, type) {
