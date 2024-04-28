@@ -139,16 +139,19 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateName = stateCodeToName[d.properties.code] || 'Unknown';
-            const stateData = dataMap[dataType][stateName];
-            const value = stateData ? stateData[timePeriod] : 0;
+            // Ensure the property key used for state code is correct
+            const stateCode = d.id;  // Commonly 'id' is used in TopoJSON files for state codes
+            const stateName = stateCodeToName[stateCode];
+            const stateData = stateName ? dataMap[dataType][stateName] : null;
+            const value = stateData && stateData[timePeriod] ? stateData[timePeriod] : 0;
             return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateName = stateCodeToName[d.properties.code] || 'Unknown';
-            const stateData = dataMap[dataType][stateName];
-            const value = stateData ? stateData[timePeriod] : "No data";
+            const stateCode = d.id;  // Again, ensure 'id' is the correct property
+            const stateName = stateCodeToName[stateCode] || 'Unknown';
+            const stateData = stateName ? dataMap[dataType][stateName] : null;
+            const value = stateData && stateData[timePeriod] ? stateData[timePeriod] : "No data";
             tooltip.style("visibility", "visible")
                    .html(`${stateName}: ${value}`)
                    .style("left", `${event.pageX + 10}px`)
