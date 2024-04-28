@@ -111,7 +111,6 @@ function processVaccination(data) {
     return vaccinationByState;
 }
 
-// Draw or update the map based on the dataset and time period
 function drawMap(us, dataMap, dataType, timePeriod) {
     const year = new Date().getFullYear();
     const month = new Date().getMonth() + 1;
@@ -119,11 +118,8 @@ function drawMap(us, dataMap, dataType, timePeriod) {
     const currentMonth = `${month}-${year}`;
 
     const dataValues = Object.values(dataMap[dataType]).flatMap(stateData => {
-        if (timePeriod === 'monthly') {
-            return stateData.monthly[currentMonth] || 0;
-        } else {
-            return stateData.yearly[currentYear] || 0;
-        }
+        const value = stateData ? (timePeriod === 'monthly' ? (stateData.monthly[currentMonth] || 0) : (stateData.yearly[currentYear] || 0)) : 0;
+        return value;
     });
 
     colorScale.domain([0, d3.max(dataValues)]);
@@ -135,14 +131,16 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
+            // Correctly accessing state data and handling undefined cases
             const stateData = dataMap[dataType][d.properties.name];
-            const value = stateData ? (timePeriod === 'monthly' ? stateData.monthly : stateData.yearly) : 0;
+            const value = stateData ? (timePeriod === 'monthly' ? (stateData.monthly[currentMonth] || 0) : (stateData.yearly[currentYear] || 0)) : 0;
             return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
+            // Handle tooltip information safely
             const stateData = dataMap[dataType][d.properties.name];
-            const value = stateData ? (timePeriod === 'monthly' ? stateData.monthly : stateData.yearly) : "No data";
+            const value = stateData ? (timePeriod === 'monthly' ? (stateData.monthly[currentMonth] || "No data") : (stateData.yearly[currentYear] || "No data")) : "No data";
             tooltip.style("visibility", "visible")
                 .html(`${d.properties.name}: ${value}`)
                 .style("left", (event.pageX + 10) + "px")
@@ -161,3 +159,4 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
 }
+
