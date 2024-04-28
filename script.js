@@ -128,6 +128,14 @@ function drawMap(us, dataMap, dataType, timePeriod) {
     console.log('Data map:', dataMap); // Log the entire data map
     console.log('Data type:', dataType); // Log the data type being accessed
     console.log('Time period:', timePeriod); // Log the time period being accessed
+    console.log('Full dataMap:', dataMap); // Shows the full structure of dataMap
+console.log('Data type specific map:', dataMap[dataType]); // Shows either cases or deaths, based on dataType
+console.log('Time period specific data:', dataMap[dataType][timePeriod]); // Shows monthly or yearly data based on timePeriod
+console.log('Data for a specific state:', dataMap[dataType][timePeriod]['Alabama']); // Example for Alabama
+
+
+    // Example debug for a specific state
+    console.log('Data for Alabama, monthly:', dataMap.cases.monthly.Alabama);
 
     // Check if dataMap, dataType, or timePeriod is undefined or incorrectly specified
     if (!dataMap || !dataMap[dataType] || !dataMap[dataType][timePeriod]) {
@@ -157,7 +165,7 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateCode = d.properties.state; // Make sure this property name matches your topojson
+            const stateCode = d.properties.state; // Ensure this matches your topojson properties
             const stateName = stateCodeToName[stateCode] || 'Unknown';
             const stateData = dataMap[dataType][timePeriod][stateName];
             const value = stateData ? stateData : 0;
