@@ -65,7 +65,6 @@ Promise.all([
     });
 });
 
-// Process total cases and deaths by state and time period
 function processData(data, type) {
     const result = {};
     data.forEach(d => {
@@ -76,7 +75,7 @@ function processData(data, type) {
         Object.keys(d).forEach(dateString => {
             if (dateString.match(/\d{1,2}\/\d{1,2}\/\d{2}/)) {
                 const [month, day, year] = dateString.split('/').map(Number);
-                const fullYear = year < 50 ? 2000 + year : 1900 + year; // Adjust based on century
+                const fullYear = year + 2000;  // Assumes dates are 2000 onwards
                 const monthYearKey = `${month}-${fullYear}`;
                 const yearKey = fullYear.toString();
 
@@ -92,6 +91,7 @@ function processData(data, type) {
     });
     return result;
 }
+
 
 // Process population data
 function processPopulation(data) {
