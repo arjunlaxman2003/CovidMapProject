@@ -111,51 +111,46 @@ function processVaccination(data) {
     return vaccinationByState;
 }
 
+// Draw or update the map based on the dataset and time period
 function drawMap(us, dataMap, dataType, timePeriod) {
     const year = new Date().getFullYear();
     const month = new Date().getMonth() + 1;
     const currentYear = year.toString();
     const currentMonth = `${month}-${year}`;
 
-    // Avoid directly calling Object.values on potentially undefined objects
-    let maxDataValue = 0;
-    svg.selectAll("*").remove(); // Clear previous drawings
-
-    const statesFeatures = topojson.feature(us, us.objects.states).features;
-    const dataValues = statesFeatures.map(feature => {
-        const stateData = (dataMap[dataType] && dataMap[dataType][feature.properties.name]) ? dataMap[dataType][feature.properties.name] : {};
-        const periodData = (stateData && stateData[timePeriod]) ? stateData[timePeriod] : {};
-        const value = (periodData[currentMonth] || periodData[currentYear] || 0);
-        maxDataValue = Math.max(maxDataValue, value);
-        return value;
+    const dataValues = Object.values(dataMap[dataType]).flatMap(stateData => {
+        if (timePeriod === 'monthly') {
+            return stateData.monthly[currentMonth] || 0;
+        } else {
+            return stateData.yearly[currentYear] || 0;
+        }
     });
 
-    colorScale.domain([0, maxDataValue]);
+    colorScale.domain([0, d3.max(dataValues)]);
+    svg.selectAll("*").remove(); // Clear previous drawings
 
     svg.append("g")
         .attr("class", "states")
         .selectAll("path")
-        .data(statesFeatures)
+        .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateData = (dataMap[dataType] && dataMap[dataType][d.properties.name]) ? dataMap[dataType][d.properties.name] : {};
-            const periodData = (stateData && stateData[timePeriod]) ? stateData[timePeriod] : {};
-            const value = (periodData[currentMonth] || periodData[currentYear] || 0);
+            const stateData = dataMap[dataType][d.properties.name];
+            const value = stateData ? (timePeriod === 'monthly' ? stateData.monthly : stateData.yearly) : 0;
             return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateData = (dataMap[dataType] && dataMap[dataType][d.properties.name]) ? dataMap[dataType][d.properties.name] : {};
-            const periodData = (stateData && stateData[timePeriod]) ? stateData[timePeriod] : {};
-            const value = (periodData[currentMonth] || periodData[currentYear] || "No data");
+            const stateData = dataMap[dataType][d.properties.name];
+            const value = stateData ? (timePeriod === 'monthly' ? stateData.monthly : stateData.yearly) : "No data";
             tooltip.style("visibility", "visible")
                 .html(`${d.properties.name}: ${value}`)
-                .style("left", `${event.pageX + 10}px`)
-                .style("top", `${event.pageY - 28}px`);
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
         })
-        .on("mousemove", event => {
-            tooltip.style("left", `${event.pageX + 10}px`)
-                .style("top", `${event.pageY - 28}px`);
+        .on("mousemove", (event) => {
+            tooltip.style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
         })
         .on("mouseout", () => {
             tooltip.style("visibility", "hidden");
