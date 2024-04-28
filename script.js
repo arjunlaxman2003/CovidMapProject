@@ -1,80 +1,103 @@
+// Initial configurations
 const width = 960, height = 600;
+const colorScheme = d3.schemeReds[6];
+const colorScale = d3.scaleQuantize().range(colorScheme);
+const path = d3.geoPath();
+
+// Append SVG to the map container
 const svg = d3.select("#map").append("svg")
     .attr("width", width)
     .attr("height", height);
+
+// Define tooltip
 const tooltip = d3.select("body").append("div")
-    .attr("class", "tooltip")
-    .style("opacity", 0);
+    .attr("id", "tooltip")
+    .style("position", "absolute")
+    .style("visibility", "hidden")
+    .style("padding", "10px")
+    .style("background", "white")
+    .style("border", "1px solid #ccc")
+    .style("border-radius", "5px")
+    .style("pointer-events", "none");
 
-let projection = d3.geoAlbersUsa().scale(1300).translate([width / 2, height / 2]);
-let path = d3.geoPath().projection(projection);
-
-// Load data and US map simultaneously
+// Load geographic and data files
 Promise.all([
-    d3.csv("Data.csv"),
-    d3.json("https://d3js.org/us-10m.v1.json")
-]).then(([data, us]) => {
-    // Logging data to see what's loaded
-    console.log("CSV Data:", data);
-    console.log("TopoJSON Data:", us);
+    d3.json("https://d3js.org/us-10m.v1.json"), 
+    d3.csv("covid_confirmed_usafacts.csv"),
+    d3.csv("covid_deaths_usafacts.csv"),
+    d3.csv("covid_county_population_usafacts.csv")
+]).then(function (files) {
+    const us = files[0];
+    const cases = aggregateByState(files[1], 'cases');
+    const deaths = aggregateByState(files[2], 'deaths');
+    const population = aggregateByState(files[3], 'population'); 
 
-    // Create a map from the data with state codes as keys
-    const dataMap = new Map(data.map(d => [d.State, d]));
-    console.log("Data Map:", dataMap);
-
-    const states = topojson.feature(us, us.objects.states).features;
-    console.log("States from TopoJSON:", states);
-
-    // Bind states data to paths
-    const statesPaths = svg.selectAll(".state")
-        .data(states)
-        .enter().append("path")
-        .attr("class", "state")
-        .attr("d", path)
-        .on("mouseover", (event, d) => {
-            const stateData = dataMap.get(d.properties.name);
-            console.log("State Data on Hover:", stateData);
-            tooltip.style("opacity", 1)
-                .html(`State: ${d.properties.name}<br>Cases: ${stateData?.Cases}<br>Deaths: ${stateData?.Deaths}<br>Vaccination: ${stateData?.Doses}`)
-                .style("left", `${event.pageX + 5}px`)
-                .style("top", `${event.pageY - 28}px`);
-        })
-        .on("mouseout", () => tooltip.style("opacity", 0));
-
-    // Initial color setting
-    updateColors("cases");
-
-    // Handle changes in dropdown
-    d3.select("#dataSelect").on("change", function() {
-        updateColors(this.value);
+    // Combine data into a single object
+    const dataMap = {};
+    Object.keys(cases).forEach(state => {
+        dataMap[state] = {
+            cases: cases[state],
+            deaths: deaths[state],
+            vaccination: population[state]  
+        };
     });
 
-    function updateColors(view) {
-        statesPaths.attr("fill", d => {
-            const data = dataMap.get(d.properties.name);
-            if (!data) return "#ccc"; // Fallback color if no data is found
-            switch (view) {
-                case "cases":
-                    return colorScaleCases(data.Cases);
-                case "deaths":
-                    return colorScaleDeaths(data.Deaths);
-                case "vaccinations":
-                    return colorScaleVaccinations(data.Doses);
-            }
-        });
-    }
-}).catch(error => {
-    console.error("Failed to load data or map:", error);
+    // Draw initial map with default data type (cases)
+    drawMap(us, dataMap, "cases");
+
+    // Set up UI interaction
+    document.getElementById('data-select').addEventListener('change', function() {
+        drawMap(us, dataMap, this.value);
+    });
 });
 
-function colorScaleCases(value) {
-    return d3.scaleSequential(d3.interpolateReds)(Math.min(value / 100000, 1));
+// Function to aggregate data by state
+function aggregateByState(data, type) {
+    return data.reduce((acc, cur) => {
+        const state = cur.State;
+        acc[state] = acc[state] || 0;
+        acc[state] += parseInt(cur[type] || 0);
+        return acc;
+    }, {});
 }
 
-function colorScaleDeaths(value) {
-    return d3.scaleSequential(d3.interpolateBlues)(Math.min(value / 1000, 1));
-}
+// Draw or update the map based on the dataset
+function drawMap(us, dataMap, dataType) {
+    const dataValues = Object.values(dataMap).map(d => d[dataType]);
+    colorScale.domain([d3.min(dataValues), d3.max(dataValues)]);
 
-function colorScaleVaccinations(value) {
-    return d3.scaleSequential(d3.interpolateGreens)(Math.min(value / 1000000, 1));
+    svg.selectAll("*").remove(); // Clear previous drawings
+
+    const states = svg.append("g")
+        .attr("class", "states")
+        .selectAll("path")
+        .data(topojson.feature(us, us.objects.states).features)
+        .enter().append("path")
+        .attr("fill", d => {
+            const stateData = dataMap[d.properties.name];
+            return stateData ? colorScale(stateData[dataType]) : "#ccc";
+        })
+        .attr("d", path)
+        .on("mouseover", (event, d) => {
+            tooltip.style("visibility", "visible")
+                .html(() => {
+                    const stateData = dataMap[d.properties.name];
+                    const dataValue = stateData ? stateData[dataType] : "No data";
+                    return `<strong>${d.properties.name}</strong>: ${dataValue}`;
+                })
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mousemove", (event) => {
+            tooltip.style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", () => {
+            tooltip.style("visibility", "hidden");
+        });
+
+    // Optional: Draw state borders
+    svg.append("path")
+        .attr("class", "state-borders")
+        .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
 }
