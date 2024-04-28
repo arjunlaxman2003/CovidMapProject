@@ -1,5 +1,7 @@
 // Initial configurations
 const width = 960, height = 600;
+const colorScheme = d3.schemeReds[6];
+const colorScale = d3.scaleQuantize().range(colorScheme);
 const path = d3.geoPath();
 
 // Append SVG to the map container
@@ -17,6 +19,23 @@ const tooltip = d3.select("body").append("div")
     .style("border", "1px solid #ccc")
     .style("border-radius", "5px")
     .style("pointer-events", "none");
+
+// State codes to state names mapping
+const stateCodeToName = {
+    "AK": "Alaska", "AL": "Alabama", "AR": "Arkansas", "AZ": "Arizona",
+    "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DC": "District of Columbia",
+    "DE": "Delaware", "FL": "Florida", "GA": "Georgia", "HI": "Hawaii",
+    "IA": "Iowa", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana",
+    "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "MA": "Massachusetts",
+    "MD": "Maryland", "ME": "Maine", "MI": "Michigan", "MN": "Minnesota",
+    "MO": "Missouri", "MS": "Mississippi", "MT": "Montana", "NC": "North Carolina",
+    "ND": "North Dakota", "NE": "Nebraska", "NH": "New Hampshire", "NJ": "New Jersey",
+    "NM": "New Mexico", "NV": "Nevada", "NY": "New York", "OH": "Ohio",
+    "OK": "Oklahoma", "OR": "Oregon", "PA": "Pennsylvania", "RI": "Rhode Island",
+    "SC": "South Carolina", "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas",
+    "UT": "Utah", "VA": "Virginia", "VT": "Vermont", "WA": "Washington",
+    "WI": "Wisconsin", "WV": "West Virginia", "WY": "Wyoming"
+};
 
 // Load geographic and data files
 Promise.all([
@@ -36,26 +55,19 @@ Promise.all([
         };
     });
 
-    // Set up color scales
-    const colorScales = {
-        cases: d3.scaleQuantize().range(d3.schemeReds[6]),
-        deaths: d3.scaleQuantize().range(d3.schemeGreens[6]),
-        vaccination: d3.scaleQuantize().range(d3.schemeBlues[6])
-    };
-
     // Draw initial map with default data type (cases)
-    drawMap(us, dataMap, "cases", colorScales);
-    
+    drawMap(us, dataMap, "cases");
+
     // Set up UI interaction
     document.getElementById('data-select').addEventListener('change', function() {
-        drawMap(us, dataMap, this.value, colorScales);
+        drawMap(us, dataMap, this.value);
     });
 });
 
 // Draw or update the map based on the dataset
-function drawMap(us, dataMap, dataType, colorScales) {
+function drawMap(us, dataMap, dataType) {
     const dataValues = Object.values(dataMap).map(d => d[dataType]);
-    const colorScale = colorScales[dataType].domain([d3.min(dataValues), d3.max(dataValues)]);
+    colorScale.domain([d3.min(dataValues), d3.max(dataValues)]);
 
     svg.selectAll("*").remove(); // Clear previous drawings
 
@@ -65,16 +77,18 @@ function drawMap(us, dataMap, dataType, colorScales) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateData = dataMap[d.properties.name];
+            const stateName = stateCodeToName[d.properties.name];
+            const stateData = dataMap[stateName];
             return stateData ? colorScale(stateData[dataType]) : "#ccc";
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
             tooltip.style("visibility", "visible")
                 .html(() => {
-                    const stateData = dataMap[d.properties.name];
+                    const stateName = stateCodeToName[d.properties.name];
+                    const stateData = dataMap[stateName];
                     const dataValue = stateData ? stateData[dataType] : "No data";
-                    return `<strong>${d.properties.name}</strong>: ${dataValue}`;
+                    return `<strong>${stateName}</strong>: ${dataValue}`;
                 })
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px");
