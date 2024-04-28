@@ -50,6 +50,7 @@ Promise.all([
     // Event listeners for radio buttons
     document.querySelectorAll('input[name="data-type"]').forEach(radio => {
         radio.addEventListener('change', function() {
+            // Fetch the current time period
             const timePeriod = document.querySelector('input[name="time-period"]:checked').value;
             drawMap(us, dataMap[this.value][timePeriod], this.value, timePeriod);
         });
@@ -57,6 +58,7 @@ Promise.all([
 
     document.querySelectorAll('input[name="time-period"]').forEach(radio => {
         radio.addEventListener('change', function() {
+            // Fetch the current data type
             const dataType = document.querySelector('input[name="data-type"]:checked').value;
             drawMap(us, dataMap[dataType][this.value], dataType, this.value);
         });
@@ -64,28 +66,26 @@ Promise.all([
 });
 
 // Process total cases and deaths by state and time period
-function processData(data, type) {
+function processData(data, type, periodType) {
     const result = {};
     data.forEach(d => {
         const state = d.State;
         if (!result[state]) {
             result[state] = { monthly: {}, yearly: {} };
         }
-        Object.keys(d).forEach(dateString => {
-            if (dateString.match(/\d{1,2}\/\d{1,2}\/\d{2}/)) {
-                const [month, day, year] = dateString.split('/').map(Number);
-                const fullYear = year < 50 ? 2000 + year : 1900 + year; // Adjust based on century
-                const monthYearKey = `${month}-${fullYear}`;
-                const yearKey = fullYear.toString();
+        Object.keys(d).filter(key => key.match(/\d{1,2}\/\d{1,2}\/\d{2}/)).forEach(dateString => {
+            const [month, day, year] = dateString.split('/').map(Number);
+            const fullYear = year < 50 ? 2000 + year : 1900 + year; // Adjust based on century
+            const monthYearKey = `${month}-${fullYear}`;
+            const yearKey = fullYear.toString();
 
-                // Ensure the sub-objects exist
-                result[state].monthly[monthYearKey] = result[state].monthly[monthYearKey] || 0;
-                result[state].yearly[yearKey] = result[state].yearly[yearKey] || 0;
+            // Ensure the sub-objects exist
+            result[state][periodType][monthYearKey] = result[state][periodType][monthYearKey] || 0;
+            result[state][periodType][yearKey] = result[state][periodType][yearKey] || 0;
 
-                // Sum up the data
-                result[state].monthly[monthYearKey] += parseInt(d[dateString], 10) || 0;
-                result[state].yearly[yearKey] += parseInt(d[dateString], 10) || 0;
-            }
+            // Sum up the data
+            result[state][periodType][monthYearKey] += parseInt(d[dateString], 10) || 0;
+            result[state][periodType][yearKey] += parseInt(d[dateString], 10) || 0;
         });
     });
     return result;
@@ -105,39 +105,33 @@ function processPopulation(data) {
 function processVaccination(data) {
     const vaccinationByState = {};
     data.forEach(d => {
-        const state = d.Jurisdiction;
-        vaccinationByState[state] = parseFloat(d['Percent of total pop with at least one dose']);
+        const state = d.State;
+        vaccinationByState[state] = {
+            atLeastOneDose: parseFloat(d['Percent of total pop with at least one dose']),
+            completedPrimarySeries: parseFloat(d['Percent of total pop with a completed primary series'])
+        };
     });
     return vaccinationByState;
 }
 
 // Draw or update the map based on the dataset and time period
 function drawMap(us, dataMap, dataType, timePeriod) {
-    console.log("Data Map:", dataMap); // Debug: Log the complete data map
-    console.log("Data Type:", dataType);
-    console.log("Time Period:", timePeriod);
-
+    // Determine the selected year and month
     const year = new Date().getFullYear();
     const month = new Date().getMonth() + 1;
     const currentYear = year.toString();
     const currentMonth = `${month}-${year}`;
 
-    if (!dataMap || !dataMap[dataType]) {
-        console.error("Data map or type is undefined.", dataMap);
-        return; // Exit the function if data is undefined
-    }
-
+    // Prepare the data values depending on the selected time period
     const dataValues = Object.values(dataMap[dataType]).flatMap(stateData => {
         if (timePeriod === 'monthly') {
-            return stateData && stateData.monthly[currentMonth] ? stateData.monthly[currentMonth] : 0;
+            // Assuming the latest month's data needs to be visualized
+            return stateData.monthly[currentMonth] || 0;
         } else {
-            return stateData && stateData.yearly[currentYear] ? stateData.yearly[currentYear] : 0;
+            // Assuming the latest complete year's data needs to be visualized
+            return stateData.yearly[currentYear] || 0;
         }
     });
-
-    if (dataValues.length === 0) {
-        console.error("No data values available for the map.");
-    }
 
     colorScale.domain([0, d3.max(dataValues)]);
     svg.selectAll("*").remove(); // Clear previous drawings
@@ -148,14 +142,16 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
+            // Extract state data based on the selected time period
             const stateData = dataMap[dataType][d.properties.name];
-            const value = stateData ? (timePeriod === 'monthly' ? (stateData.monthly[currentMonth] || 0) : (stateData.yearly[currentYear] || 0)) : 0;
+            const value = stateData ? (timePeriod === 'monthly' ? stateData.monthly : stateData.yearly) : 0;
             return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
+            // Display data in tooltip
             const stateData = dataMap[dataType][d.properties.name];
-            const value = stateData ? (timePeriod === 'monthly' ? (stateData.monthly[currentMonth] || "No data") : (stateData.yearly[currentYear] || "No data")) : "No data";
+            const value = stateData ? (timePeriod === 'monthly' ? stateData.monthly : stateData.yearly) : "No data";
             tooltip.style("visibility", "visible")
                 .html(`${d.properties.name}: ${value}`)
                 .style("left", (event.pageX + 10) + "px")
