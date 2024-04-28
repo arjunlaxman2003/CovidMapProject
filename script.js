@@ -124,19 +124,22 @@ function processVaccination(data) {
     return vaccinationByState;
 }
 
-function drawMap(us, dataType, timePeriod) {
+function drawMap(us, dataMap, dataType, timePeriod) {
+    // Check if the necessary data is available
     if (!dataMap || !dataMap[dataType] || !dataMap[dataType][timePeriod]) {
-        console.error('Data map or type is undefined.', dataMap, dataType);
-        return; // Exit the function if dataMap or dataType is not properly defined
+        console.error('Data map or type is undefined or does not contain the expected data:', dataMap, dataType, timePeriod);
+        console.log("Checking dataMap access:", dataMap[dataType][timePeriod]);
+        return; // Exit if data is not structured as expected
     }
 
+    console.log("Data available for drawing:", dataMap[dataType][timePeriod]);
+
+    // Other initializations and setting up scales
     const year = new Date().getFullYear();
     const month = new Date().getMonth() + 1;
     const currentMonth = `${month}-${year}`;
 
-    // Get data values for color scaling
     let dataValues = Object.values(dataMap[dataType][timePeriod]).flatMap(stateData => Object.values(stateData));
-
     if (dataValues.length > 0) {
         colorScale.domain([0, d3.max(dataValues)]);
     } else {
@@ -144,28 +147,30 @@ function drawMap(us, dataType, timePeriod) {
         return;
     }
 
-    svg.selectAll("*").remove(); // Clear previous drawings
+    // Clear previous SVG elements
+    svg.selectAll("*").remove();
 
+    // Draw new map features
     svg.append("g")
         .attr("class", "states")
         .selectAll("path")
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateId = d.id; // Assuming 'id' is the state code from the topojson
-            const stateName = stateCodeToName[stateId]; // Convert state code to state name
-            const value = dataMap[dataType][timePeriod][stateName]?.[currentMonth] ?? 0; // Safely access data, default to 0 if undefined
+            const stateId = d.id; // Ensure this ID matches keys in dataMap
+            const stateName = stateCodeToName[stateId]; // Map ID to State Name if needed
+            const value = dataMap[dataType][timePeriod][stateName]?.[currentMonth] || 0;
             return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
             const stateId = d.id;
             const stateName = stateCodeToName[stateId];
-            const value = dataMap[dataType][timePeriod][stateName]?.[currentMonth] ?? "No data";
+            const value = dataMap[dataType][timePeriod][stateName]?.[currentMonth] || "No data";
             tooltip.style("visibility", "visible")
                 .html(`${stateName}: ${value}`)
-                .style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 28) + "px");
+                .style("left", `${event.pageX + 10}px`)
+                .style("top", `${event.pageY - 28}px`);
         })
         .on("mouseout", () => {
             tooltip.style("visibility", "hidden");
@@ -176,4 +181,3 @@ function drawMap(us, dataType, timePeriod) {
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
 }
-
