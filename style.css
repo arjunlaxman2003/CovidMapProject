@@ -1,77 +1,58 @@
+/* Basic styling for the entire page */
 body {
-    font-family: 'Arial', sans-serif;
-    margin: 0;
+    font-family: Arial, sans-serif;
+    margin: 20px;
     padding: 0;
-    background: #f4f4f4; /* Consistent light background color for the overall page */
-    display: flex;
-    flex-direction: column;
-    align-items: center; /* Centers content vertically on the page */
+    background: #f4f4f4;
 }
 
-#controls {
+/* Header styling */
+h1 {
+    color: #333;
     text-align: center;
-    margin-top: 20px;
 }
 
-#map {
-    width: 960px; /* Consistent width adjusted to 960px */
-    height: 600px; /* Height adjusted to 600px */
-    margin-bottom: 20px; /* Space below the map */
-    background-color: #f0f0f0; /* Light grey background to contrast the states */
-    border: 1px solid #ddd; /* Light border around the map */
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.05); /* Subtle shadow for a bit of depth */
+/* SVG map styling */
+svg {
+    display: block;
+    margin: auto;
+    background: #fff;
+    border: 1px solid #ccc;
 }
 
-#data-select {
-    padding: 10px 20px; /* Slightly more padding for a touch-friendly UI */
-    font-size: 16px; /* Legible font size */
-    border: none; /* Remove default border */
-    border-radius: 5px; /* Rounded corners for a modern look */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Soft shadow to match the map */
-    cursor: pointer; /* Cursor pointer to indicate it's clickable */
-    background-color: #ffffff; /* White background for a clean appearance */
-    margin-bottom: 10px; /* Space below the dropdown */
-    outline: none; /* Remove focus outline to maintain custom styles */
+/* Dropdown menu styling */
+#dataSelect {
+    display: block;
+    margin: 20px auto;
+    padding: 10px;
+    width: 200px;
+    font-size: 16px;
+    cursor: pointer;
 }
 
-#tooltip {
+/* Tooltip styling */
+.tooltip {
     position: absolute;
-    visibility: hidden; /* Initially hidden, shown on hover */
-    padding: 8px 12px;
-    background-color: #ffffff; /* White background for readability */
-    border: 1px solid #ccc; /* Subtle border for definition */
-    border-radius: 3px; /* Softly rounded corners for the tooltip */
-    box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.2); /* Consistent shadow as select box */
-    pointer-events: none; /* Ensures tooltip does not interfere with map interaction */
-    z-index: 1000; /* Ensures tooltip appears above other elements */
-    font-size: 13px; /* Size for readability without overpowering the map */
-    color: #333; /* Dark grey for high contrast */
-    line-height: 1.4; /* Slight increase in line height for better readability */
-    max-width: 220px; /* Max width to avoid overly wide tooltips */
-    text-align: left; /* Align text for readability */
+    background-color: white;
+    border: 1px solid #ddd;
+    padding: 10px;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    pointer-events: none;
+    z-index: 10;
+    display: none;
+    font-size: 14px;
+    color: #333;
 }
 
-@media (max-width: 768px) {
-    #map, #data-select {
-        width: 95%; /* Slightly less than full width to maintain padding */
-    }
+/* Styling for different views of cases, deaths, and vaccination */
+.cases { 
+    fill: blue; /* Color for cases view */
+}
 
-    #map {
-        height: auto; /* Auto height for a more responsive aspect ratio */
-        aspect-ratio: 16 / 9; /* Maintain a specific aspect ratio */
-    }
+.deaths {
+    fill: red; /* Color for deaths view */
+}
 
-    #data-select {
-        padding: 8px 16px; /* Adjust padding for smaller screens */
-        font-size: 14px; /* Adjust font size for smaller screens */
-    }
-
-    #tooltip {
-        font-size: 12px; /* Reduce font size for tooltips on smaller screens */
-        padding: 6px 10px; /* Reduce padding to fit smaller screens */
-    }
-
-    body, #controls {
-        width: 100%; /* Full width to use screen space effectively */
-    }
+.vaccination {
+    fill: green; /* Color for vaccination view */
 }
