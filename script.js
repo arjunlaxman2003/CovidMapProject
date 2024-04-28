@@ -124,23 +124,10 @@ function processVaccination(data) {
     return vaccinationByState;
 }
 
-function drawMap(us, dataMap, dataType, timePeriod) {
-    console.log('Data map:', dataMap); // Log the entire data map
-    console.log('Data type:', dataType); // Log the data type being accessed
-    console.log('Time period:', timePeriod); // Log the time period being accessed
-    console.log('Full dataMap:', dataMap); // Shows the full structure of dataMap
-console.log('Data type specific map:', dataMap[dataType]); // Shows either cases or deaths, based on dataType
-console.log('Time period specific data:', dataMap[dataType][timePeriod]); // Shows monthly or yearly data based on timePeriod
-console.log('Data for a specific state:', dataMap[dataType][timePeriod]['Alabama']); // Example for Alabama
-
-
-    // Example debug for a specific state
-    console.log('Data for Alabama, monthly:', dataMap.cases.monthly.Alabama);
-
-    // Check if dataMap, dataType, or timePeriod is undefined or incorrectly specified
+function drawMap(us, dataType, timePeriod) {
     if (!dataMap || !dataMap[dataType] || !dataMap[dataType][timePeriod]) {
-        console.error('Data map or type is undefined.', {dataMap, dataType, timePeriod});
-        return; // Exit the function if there is a problem with the data
+        console.error('Data map or type is undefined.', dataMap, dataType);
+        return; // Exit the function if dataMap or dataType is not properly defined
     }
 
     const year = new Date().getFullYear();
@@ -148,7 +135,7 @@ console.log('Data for a specific state:', dataMap[dataType][timePeriod]['Alabama
     const currentMonth = `${month}-${year}`;
 
     // Get data values for color scaling
-    let dataValues = Object.values(dataMap[dataType][timePeriod]).flat();
+    let dataValues = Object.values(dataMap[dataType][timePeriod]).flatMap(stateData => Object.values(stateData));
 
     if (dataValues.length > 0) {
         colorScale.domain([0, d3.max(dataValues)]);
@@ -165,18 +152,16 @@ console.log('Data for a specific state:', dataMap[dataType][timePeriod]['Alabama
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateCode = d.properties.state; // Ensure this matches your topojson properties
-            const stateName = stateCodeToName[stateCode] || 'Unknown';
-            const stateData = dataMap[dataType][timePeriod][stateName];
-            const value = stateData ? stateData : 0;
+            const stateId = d.id; // Assuming 'id' is the state code from the topojson
+            const stateName = stateCodeToName[stateId]; // Convert state code to state name
+            const value = dataMap[dataType][timePeriod][stateName]?.[currentMonth] ?? 0; // Safely access data, default to 0 if undefined
             return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateCode = d.properties.state;
-            const stateName = stateCodeToName[stateCode] || 'Unknown';
-            const stateData = dataMap[dataType][timePeriod][stateName];
-            const value = stateData ? stateData : "No data";
+            const stateId = d.id;
+            const stateName = stateCodeToName[stateId];
+            const value = dataMap[dataType][timePeriod][stateName]?.[currentMonth] ?? "No data";
             tooltip.style("visibility", "visible")
                 .html(`${stateName}: ${value}`)
                 .style("left", (event.pageX + 10) + "px")
@@ -191,3 +176,4 @@ console.log('Data for a specific state:', dataMap[dataType][timePeriod]['Alabama
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
 }
+
