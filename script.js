@@ -136,6 +136,7 @@ function drawMap(us, dataMap, dataType, timePeriod) {
     const month = new Date().getMonth() + 1;
     const currentMonth = `${month}-${year}`;
 
+    // Set domain for color scaling based on data values
     colorScale.domain([0, d3.max(Object.values(dataMap[dataType]).flatMap(stateData => Object.values(stateData[timePeriod])))]);
     svg.selectAll("*").remove(); // Clear previous drawings
 
@@ -145,23 +146,19 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateName = stateCodeToName[d.properties.name];
+            const stateName = stateCodeToName[d.properties.states]; // Adjust to use the 'states' property
             const stateData = dataMap[dataType][stateName];
             const value = stateData ? stateData[timePeriod] : 0;
             return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateName = stateCodeToName[d.properties.name];
+            const stateName = stateCodeToName[d.properties.states]; // Adjust to use the 'states' property
             const stateData = dataMap[dataType][stateName];
             const value = stateData ? stateData[timePeriod] : "No data";
             tooltip.style("visibility", "visible")
                 .html(`${stateName}: ${value}`)
                 .style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 28) + "px");
-        })
-        .on("mousemove", (event) => {
-            tooltip.style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
         .on("mouseout", () => {
