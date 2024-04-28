@@ -133,23 +133,26 @@ function processVaccination(data) {
 
 function drawMap(us, dataMap, dataType, timePeriod) {
     if (!dataMap || !dataMap[dataType]) {
-        console.error("Data map not initialized or data type not present:", dataType);
-        return; // Exit if dataMap is not correctly initialized
+        console.error('Data map or type is undefined.', dataMap, dataType);
+        return; // Exit the function if dataMap or dataType is not properly defined
     }
 
     const year = new Date().getFullYear();
     const month = new Date().getMonth() + 1;
     const currentMonth = `${month}-${year}`;
 
-    try {
-        const dataValues = Object.values(dataMap[dataType]).flatMap(stateData => {
-            return Object.values(stateData[timePeriod] || {});
+    // Get data values for color scaling
+    let dataValues = [];
+    if (dataMap[dataType]) {
+        dataValues = Object.values(dataMap[dataType]).flatMap(stateData => {
+            return stateData && stateData[timePeriod] ? Object.values(stateData[timePeriod]) : [];
         });
+    }
 
+    if (dataValues.length > 0) {
         colorScale.domain([0, d3.max(dataValues)]);
-    } catch (error) {
-        console.error("Error processing data values:", error);
-        return; // Exit if there is an error in processing data values
+    } else {
+        console.error('No data values available for color scaling.');
     }
 
     svg.selectAll("*").remove(); // Clear previous drawings
@@ -160,18 +163,16 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateCode = d.properties.states; // This needs to match the actual property used in the TopoJSON
-            const stateName = stateCodeToName[stateCode];
+            const stateName = stateCodeToName[d.properties.states] || 'Unknown'; // Adjust to use the 'states' property
             const stateData = dataMap[dataType][stateName];
-            const value = stateData ? stateData[timePeriod] : 0;
-            return colorScale(value || 0);
+            const value = stateData && stateData[timePeriod] ? stateData[timePeriod] : 0;
+            return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateCode = d.properties.states;
-            const stateName = stateCodeToName[stateCode];
+            const stateName = stateCodeToName[d.properties.states] || 'Unknown';
             const stateData = dataMap[dataType][stateName];
-            const value = stateData ? stateData[timePeriod] : "No data";
+            const value = stateData && stateData[timePeriod] ? stateData[timePeriod] : "No data";
             tooltip.style("visibility", "visible")
                 .html(`${stateName}: ${value}`)
                 .style("left", (event.pageX + 10) + "px")
@@ -186,24 +187,3 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
 }
-
-// Add console.log to check outputs in the data processing functions
-function processData(data, type, periodType) {
-    const result = {};
-    data.forEach(d => {
-        const state = d.State;
-        if (!result[state]) {
-            result[state] = { monthly: {}, yearly: {} };
-        }
-        Object.keys(d).filter(key => key.match(/\d{1,2}\/\d{1,2}\/\d{2}/)).forEach(dateString => {
-            const [month, day, year] = dateString.split('/').map(Number);
-            const fullYear = year < 50 ? 2000 + year : 1900 + year; // Adjust based on century
-            const monthYearKey = `${month}-${fullYear}`;
-            const yearKey = fullYear.toString();
-
-            // Ensure the sub-objects exist
-            result[state][periodType][monthYearKey] = result[state][periodType][monthYearKey] || 0;
-            result[state][periodType][yearKey] = result[state][periodType][yearKey] || 0;
-
-            // Sum up the data
-            result[state][periodType][month
