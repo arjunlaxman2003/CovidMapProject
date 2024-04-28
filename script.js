@@ -23,19 +23,22 @@ const tooltip = d3.select("body").append("div")
 // Load geographic and data files
 Promise.all([
     d3.json("https://d3js.org/us-10m.v1.json"), 
-    d3.csv("Data.csv")
+    d3.csv("covid_confirmed_usafacts.csv"),
+    d3.csv("covid_deaths_usafacts.csv"),
+    d3.csv("covid_county_population_usafacts.csv")
 ]).then(function (files) {
     const us = files[0];
-    const data = files[1];
+    const cases = aggregateByState(files[1], 'cases');
+    const deaths = aggregateByState(files[2], 'deaths');
+    const population = aggregateByState(files[3], 'population'); 
 
-    // Aggregate data by state
+    // Combine data into a single object
     const dataMap = {};
-    data.forEach(d => {
-        dataMap[d.State] = {
-            code: stateNameToCode[d.State],
-            cases: +d.Cases,
-            deaths: +d.Deaths,
-            vaccination: +d.Doses  
+    Object.keys(cases).forEach(state => {
+        dataMap[state] = {
+            cases: cases[state],
+            deaths: deaths[state],
+            vaccination: population[state]  
         };
     });
 
@@ -47,6 +50,16 @@ Promise.all([
         drawMap(us, dataMap, this.value);
     });
 });
+
+// Function to aggregate data by state
+function aggregateByState(data, type) {
+    return data.reduce((acc, cur) => {
+        const state = cur.State;
+        acc[state] = acc[state] || 0;
+        acc[state] += parseInt(cur[type] || 0);
+        return acc;
+    }, {});
+}
 
 // Draw or update the map based on the dataset
 function drawMap(us, dataMap, dataType) {
@@ -88,25 +101,3 @@ function drawMap(us, dataMap, dataType) {
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
 }
-
-// State codes to names mapping
-const stateCodeToName = {
-    "AK": "Alaska", "AL": "Alabama", "AR": "Arkansas", "AZ": "Arizona",
-    "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DC": "District of Columbia",
-    "DE": "Delaware", "FL": "Florida", "GA": "Georgia", "HI": "Hawaii",
-    "IA": "Iowa", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana",
-    "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "MA": "Massachusetts",
-    "MD": "Maryland", "ME": "Maine", "MI": "Michigan", "MN": "Minnesota",
-    "MO": "Missouri", "MS": "Mississippi", "MT": "Montana", "NC": "North Carolina",
-    "ND": "North Dakota", "NE": "Nebraska", "NH": "New Hampshire", "NJ": "New Jersey",
-    "NM": "New Mexico", "NV": "Nevada", "NY": "New York", "OH": "Ohio",
-    "OK": "Oklahoma", "OR": "Oregon", "PA": "Pennsylvania", "RI": "Rhode Island",
-    "SC": "South Carolina", "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas",
-    "UT": "Utah", "VA": "Virginia", "VT": "Vermont", "WA": "Washington",
-    "WI": "Wisconsin", "WV": "West Virginia", "WY": "Wyoming"
-};
-
-const stateNameToCode = {};
-Object.keys(stateCodeToName).forEach(code => {
-    stateNameToCode[stateCodeToName[code]] = code;
-});
