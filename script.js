@@ -125,19 +125,21 @@ function processVaccination(data) {
 }
 
 function drawMap(us, dataMap, dataType, timePeriod) {
-    // Debugging output to see what is received by the function
-    console.log('Data received:', { dataMap, dataType, timePeriod });
+    console.log('Data map:', dataMap); // Log the entire data map
+    console.log('Data type:', dataType); // Log the data type being accessed
+    console.log('Time period:', timePeriod); // Log the time period being accessed
 
+    // Check if dataMap, dataType, or timePeriod is undefined or incorrectly specified
     if (!dataMap || !dataMap[dataType] || !dataMap[dataType][timePeriod]) {
         console.error('Data map or type is undefined.', {dataMap, dataType, timePeriod});
-        return; // Exit the function if dataMap, dataType, or timePeriod is not properly defined
+        return; // Exit the function if there is a problem with the data
     }
 
     const year = new Date().getFullYear();
     const month = new Date().getMonth() + 1;
     const currentMonth = `${month}-${year}`;
 
-    // Extract data values for color scaling
+    // Get data values for color scaling
     let dataValues = Object.values(dataMap[dataType][timePeriod]).flat();
 
     if (dataValues.length > 0) {
@@ -155,15 +157,17 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateName = stateCodeToName[d.properties.state] || 'Unknown'; // Adjust according to your JSON structure
-            const stateData = dataMap[dataType][stateName][timePeriod];
+            const stateCode = d.properties.state; // Make sure this property name matches your topojson
+            const stateName = stateCodeToName[stateCode] || 'Unknown';
+            const stateData = dataMap[dataType][timePeriod][stateName];
             const value = stateData ? stateData : 0;
             return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateName = stateCodeToName[d.properties.state] || 'Unknown'; // Adjust according to your JSON structure
-            const stateData = dataMap[dataType][stateName][timePeriod];
+            const stateCode = d.properties.state;
+            const stateName = stateCodeToName[stateCode] || 'Unknown';
+            const stateData = dataMap[dataType][timePeriod][stateName];
             const value = stateData ? stateData : "No data";
             tooltip.style("visibility", "visible")
                 .html(`${stateName}: ${value}`)
