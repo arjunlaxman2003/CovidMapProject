@@ -118,8 +118,8 @@ function drawMap(us, dataMap, dataType, timePeriod) {
     const currentMonth = `${month}-${year}`;
 
     const dataValues = Object.values(dataMap[dataType]).flatMap(stateData => {
-        const value = stateData ? (timePeriod === 'monthly' ? (stateData.monthly[currentMonth] || 0) : (stateData.yearly[currentYear] || 0)) : 0;
-        return value;
+        // Safe access with default for missing state data
+        return stateData ? (timePeriod === 'monthly' ? stateData.monthly[currentMonth] : stateData.yearly[currentYear]) : 0;
     });
 
     colorScale.domain([0, d3.max(dataValues)]);
@@ -131,24 +131,22 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            // Correctly accessing state data and handling undefined cases
-            const stateData = dataMap[dataType][d.properties.name];
-            const value = stateData ? (timePeriod === 'monthly' ? (stateData.monthly[currentMonth] || 0) : (stateData.yearly[currentYear] || 0)) : 0;
+            const stateData = dataMap[dataType][d.properties.name] || {};
+            const value = (timePeriod === 'monthly' ? stateData.monthly[currentMonth] : stateData.yearly[currentYear]) || 0;
             return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            // Handle tooltip information safely
-            const stateData = dataMap[dataType][d.properties.name];
-            const value = stateData ? (timePeriod === 'monthly' ? (stateData.monthly[currentMonth] || "No data") : (stateData.yearly[currentYear] || "No data")) : "No data";
+            const stateData = dataMap[dataType][d.properties.name] || {};
+            const value = (timePeriod === 'monthly' ? stateData.monthly[currentMonth] : stateData.yearly[currentYear]) || "No data";
             tooltip.style("visibility", "visible")
                 .html(`${d.properties.name}: ${value}`)
-                .style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 28) + "px");
+                .style("left", `${event.pageX + 10}px`)
+                .style("top", `${event.pageY - 28}px`);
         })
-        .on("mousemove", (event) => {
-            tooltip.style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 28) + "px");
+        .on("mousemove", event => {
+            tooltip.style("left", `${event.pageX + 10}px`)
+                .style("top", `${event.pageY - 28}px`);
         })
         .on("mouseout", () => {
             tooltip.style("visibility", "hidden");
@@ -159,4 +157,3 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
 }
-
