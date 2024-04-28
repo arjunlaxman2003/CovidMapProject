@@ -97,6 +97,7 @@ function processData(data, type, periodType) {
             result[stateName][periodType][yearKey] += parseInt(d[dateString], 10) || 0;
         });
     });
+    console.log('Processed data:', result);
     return result;
 }
 
@@ -124,9 +125,9 @@ function processVaccination(data) {
 }
 
 function drawMap(us, dataMap, dataType, timePeriod) {
-    if (!dataMap || !dataMap[dataType]) {
-        console.error('Data map or type is undefined.', dataMap, dataType);
-        return; // Exit the function if dataMap or dataType is not properly defined
+    if (!dataMap || Object.keys(dataMap).length === 0) {
+        console.error('No data available for', dataType, 'in', timePeriod);
+        return; // Exit the function if dataMap is not properly defined or is empty
     }
 
     const year = new Date().getFullYear();
@@ -134,16 +135,19 @@ function drawMap(us, dataMap, dataType, timePeriod) {
     const currentMonth = `${month}-${year}`;
 
     let dataValues = [];
-    if (dataMap[dataType]) {
-        dataValues = Object.values(dataMap[dataType]).flatMap(stateData => {
-            return stateData && stateData[timePeriod] ? Object.values(stateData[timePeriod]) : [];
-        });
+    for (let stateName in dataMap) {
+        if (dataMap[stateName][timePeriod]) {
+            for (let key in dataMap[stateName][timePeriod]) {
+                dataValues.push(dataMap[stateName][timePeriod][key]);
+            }
+        }
     }
 
     if (dataValues.length > 0) {
         colorScale.domain([0, d3.max(dataValues)]);
     } else {
         console.error('No data values available for color scaling.');
+        return;
     }
 
     svg.selectAll("*").remove(); // Clear previous drawings
@@ -154,15 +158,15 @@ function drawMap(us, dataMap, dataType, timePeriod) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateName = stateCodeToName[d.properties.states] || 'Unknown'; // Adjust to use the 'states' property
-            const stateData = dataMap[dataType][stateName];
+            const stateName = stateCodeToName[d.properties.states] || 'Unknown';
+            const stateData = dataMap[stateName];
             const value = stateData && stateData[timePeriod] ? stateData[timePeriod] : 0;
             return colorScale(value);
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
             const stateName = stateCodeToName[d.properties.states] || 'Unknown';
-            const stateData = dataMap[dataType][stateName];
+            const stateData = dataMap[stateName];
             const value = stateData && stateData[timePeriod] ? stateData[timePeriod] : "No data";
             tooltip.style("visibility", "visible")
                 .html(`${stateName}: ${value}`)
