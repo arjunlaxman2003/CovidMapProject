@@ -7,9 +7,11 @@ const tooltip = d3.select("body").append("div").attr("class", "tooltip");
 let projection = d3.geoAlbersUsa().scale(1300).translate([width / 2, height / 2]);
 let path = d3.geoPath().projection(projection);
 
+let dataMap; // Define dataMap outside the d3.csv to have global access
+
 // Load data and US map
 d3.csv("Data.csv").then(data => {
-    const dataMap = new Map(data.map(d => [d.State, d]));
+    dataMap = new Map(data.map(d => [d.State, d])); // Ensure dataMap is accessible
 
     d3.json("https://d3js.org/us-10m.v1.json").then(us => {
         const states = topojson.feature(us, us.objects.states).features;
@@ -28,7 +30,7 @@ d3.csv("Data.csv").then(data => {
             })
             .on("mouseout", () => tooltip.style("opacity", 0));
 
-        updateView("cases");
+        updateView("cases"); // Initial view setup
     });
 });
 
