@@ -1,3 +1,25 @@
+// Initial configurations
+const width = 960, height = 600;
+const colorScheme = d3.schemeReds[6];
+const colorScale = d3.scaleQuantize().range(colorScheme);
+const path = d3.geoPath();
+
+// Append SVG to the map container
+const svg = d3.select("#map").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+// Define tooltip
+const tooltip = d3.select("body").append("div")
+    .attr("id", "tooltip")
+    .style("position", "absolute")
+    .style("visibility", "hidden")
+    .style("padding", "10px")
+    .style("background", "white")
+    .style("border", "1px solid #ccc")
+    .style("border-radius", "5px")
+    .style("pointer-events", "none");
+
 // Load geographic and data files
 Promise.all([
     d3.json("https://d3js.org/us-10m.v1.json"), 
@@ -6,10 +28,10 @@ Promise.all([
     const us = files[0];
     const data = files[1];
 
-    // Aggregate data by state using state ID as key, formatted to match
+    // Aggregate data by state using the ID from GeoJSON as numeric
     const dataMap = {};
     data.forEach(d => {
-        dataMap[d.State_Code.padStart(2, '0')] = { // Ensure two-digit IDs
+        dataMap[d.State_Code] = {
             state: d.State,
             cases: +d.Cases,
             deaths: +d.Deaths,
@@ -17,6 +39,7 @@ Promise.all([
         };
     });
 
+    // Draw initial map with default data type (cases)
     drawMap(us, dataMap, "cases");
 
     // Set up UI interaction
@@ -25,29 +48,32 @@ Promise.all([
     });
 });
 
+// Draw or update the map based on the dataset
 function drawMap(us, dataMap, dataType) {
     const dataValues = Object.values(dataMap).map(d => d[dataType]);
     colorScale.domain([d3.min(dataValues), d3.max(dataValues)]);
 
     svg.selectAll("*").remove(); // Clear previous drawings
 
-    const states = topojson.feature(us, us.objects.states).features;
-    svg.append("g")
+    const states = svg.append("g")
         .attr("class", "states")
         .selectAll("path")
-        .data(states)
+        .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateID = d.id; // Use 'id' to match with the state code
-            const stateData = dataMap[stateID];
+            const stateCode = String(d.id); 
+            const stateData = dataMap[stateCode];
             return stateData ? colorScale(stateData[dataType]) : "#ccc";
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateID = d.id;
-            const stateData = dataMap[stateID] || { state: "No data", cases: "No data" };
             tooltip.style("visibility", "visible")
-                .html(`<strong>${stateData.state}</strong> (${stateID}): ${stateData[dataType]}`)
+                .html(() => {
+                    const stateCode = String(d.id);
+                    const stateData = dataMap[stateCode];
+                    const dataValue = stateData ? stateData[dataType] : "No data";
+                    return stateData ? `<strong>${stateData.state}</strong> (${stateCode}): ${dataValue}` : "Data not available";
+                })
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
@@ -59,7 +85,7 @@ function drawMap(us, dataMap, dataType) {
             tooltip.style("visibility", "hidden");
         });
 
-    // Optional: Draw state borders
+    //  Draw state borders
     svg.append("path")
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
