@@ -18,7 +18,8 @@ const tooltip = d3.select("body").append("div")
     .style("background", "white")
     .style("border", "1px solid #ccc")
     .style("border-radius", "5px")
-    .style("pointer-events", "none");
+    .style("pointer-events", "none")
+    .style("z-index", "999"); // Ensure tooltip appears above other elements
 
 // Load geographic and data files
 Promise.all([
