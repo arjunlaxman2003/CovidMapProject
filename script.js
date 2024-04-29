@@ -59,17 +59,16 @@ function drawMap(us, dataMap, dataType) {
 }
 
 function showTooltip(x, y, stateName, stateCode, dataValue) {
-    let tooltipHTML = `<strong>${stateName}</strong> (${stateCode}): ${dataValue}`;
     if (stateName && stateCode && dataValue) {
-        tooltipHTML = `<strong>${stateName}</strong> (${stateCode}): ${dataValue}`;
+        tooltip.style("visibility", "visible")
+            .html(`<strong>${stateName}</strong> (${stateCode}): ${dataValue}`)
+            .style("left", (x + 10) + "px")
+            .style("top", (y - 28) + "px");
     } else {
-        tooltipHTML = "No data available";
+        tooltip.style("visibility", "hidden");
     }
-    tooltip.style("visibility", "visible")
-        .html(tooltipHTML)
-        .style("left", (x + 10) + "px")
-        .style("top", (y - 28) + "px");
 }
+
 
 
 function moveTooltip(x, y) {
