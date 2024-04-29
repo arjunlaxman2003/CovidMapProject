@@ -48,7 +48,7 @@ Promise.all([
     });
 });
 
-// Draw or update the map based on the dataset
+// Draw the map based on the dataset
 function drawMap(us, dataMap, dataType) {
     const dataValues = Object.values(dataMap).map(d => d[dataType]);
     colorScale.domain([d3.min(dataValues), d3.max(dataValues)]);
@@ -67,13 +67,13 @@ function drawMap(us, dataMap, dataType) {
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
+            const stateCode = d.properties.name;
+            const stateData = dataMap[stateCode];
+            const dataValue = stateData ? stateData[dataType] : "No data";
+            const stateName = stateData ? stateData.state : "Unknown";
+            
             tooltip.style("visibility", "visible")
-                .html(() => {
-                    const stateCode = d.properties.name;
-                    const stateData = dataMap[stateCode];
-                    const dataValue = stateData ? stateData[dataType] : "No data";
-                    return `<strong>${stateData ? stateData.state : stateCode}</strong> (${stateCode}): ${dataValue}`;
-                })
+                .html(`<strong>${stateName}</strong> (${stateCode}): ${dataValue}`)
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
@@ -85,7 +85,7 @@ function drawMap(us, dataMap, dataType) {
             tooltip.style("visibility", "hidden");
         });
 
-    // Draw state borders
+    // Optional: Draw state borders
     svg.append("path")
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
