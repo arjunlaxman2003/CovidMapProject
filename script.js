@@ -1,7 +1,7 @@
 // Initial configurations
 const width = 960, height = 600;
 const colorScheme = d3.schemeReds[6];
-const colorScale = d3.scaleQuantize().range(colorScheme);
+const colorScale = d3.scaleQuantize().range(colorScheme); // Ensuring colorScale is defined here
 const path = d3.geoPath();
 
 // Append SVG to the map container
@@ -20,6 +20,20 @@ const tooltip = d3.select("body").append("div")
     .style("border-radius", "5px")
     .style("pointer-events", "none");
 
+// State Code mapping based on the provided data
+const stateCodeMap = {
+    "01": "AL", "02": "AK", "04": "AZ", "05": "AR", "06": "CA", "08": "CO",
+    "09": "CT", "10": "DE", "11": "DC", "12": "FL", "13": "GA", "15": "HI",
+    "16": "ID", "17": "IL", "18": "IN", "19": "IA", "20": "KS", "21": "KY",
+    "22": "LA", "23": "ME", "24": "MD", "25": "MA", "26": "MI", "27": "MN",
+    "28": "MS", "29": "MO", "30": "MT", "31": "NE", "32": "NV", "33": "NH",
+    "34": "NJ", "35": "NM", "36": "NY", "37": "NC", "38": "ND", "39": "OH",
+    "40": "OK", "41": "OR", "42": "PA", "44": "RI", "45": "SC", "46": "SD",
+    "47": "TN", "48": "TX", "49": "UT", "50": "VT", "51": "VA", "53": "WA",
+    "54": "WV", "55": "WI", "56": "WY", "60": "AS", "66": "GU", "69": "MP",
+    "72": "PR", "74": "UM", "78": "VI"
+};
+
 // Load geographic and data files
 Promise.all([
     d3.json("https://d3js.org/us-10m.v1.json"), 
@@ -31,12 +45,15 @@ Promise.all([
     // Aggregate data by state using the ID from GeoJSON as numeric
     const dataMap = {};
     data.forEach(d => {
-        dataMap[d.State_Code] = {
-            state: d.State,
-            cases: +d.Cases,
-            deaths: +d.Deaths,
-            vaccination: +d.Doses  
-        };
+        const geoId = Object.keys(stateCodeMap).find(key => stateCodeMap[key] === d.State_Code);
+        if (geoId) {
+            dataMap[geoId] = {
+                state: d.State,
+                cases: +d.Cases,
+                deaths: +d.Deaths,
+                vaccination: +d.Doses  
+            };
+        }
     });
 
     // Draw initial map with default data type (cases)
@@ -61,8 +78,7 @@ function drawMap(us, dataMap, dataType) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateCode = String(d.id); 
-            const stateData = dataMap[stateCode];
+            const stateData = dataMap[d.id];
             return stateData ? colorScale(stateData[dataType]) : "#ccc";
         })
         .attr("d", path)
