@@ -70,8 +70,12 @@ function drawMap(us, dataMap, dataType) {
         .on("mouseover", (event, d) => {
             const stateCode = d.properties.name;
             const stateData = dataMap[stateCode];
-            const dataValue = stateData ? stateData[dataType] : "No data";
-            const stateName = stateData ? stateData.state : stateCode;
+            let stateName = stateCode;
+            let dataValue = "No data";
+            if (stateData) {
+                stateName = stateData.state || stateCode;
+                dataValue = stateData[dataType] || "No data";
+            }
             tooltip.style("visibility", "visible")
                 .html(`<strong>${stateName}</strong> (${stateCode}): ${dataValue}`)
                 .style("left", (event.pageX + 10) + "px")
@@ -90,4 +94,3 @@ function drawMap(us, dataMap, dataType) {
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
 }
-
