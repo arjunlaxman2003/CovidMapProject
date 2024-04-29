@@ -10,7 +10,7 @@ const svg = d3.select("#map").append("svg")
     .attr("height", height);
 
 // Define tooltip
-const tooltip = d3.select("body").append("div")
+const tooltip = d3.select("#map").append("div")
     .attr("id", "tooltip")
     .style("position", "absolute")
     .style("visibility", "hidden")
@@ -68,29 +68,17 @@ function drawMap(us, dataMap, dataType) {
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-    console.log("Mouseover event triggered");
-    const stateCode = d.properties.name;
-    const stateData = dataMap[stateCode];
-    const dataValue = stateData ? stateData[dataType] : "No data";
-    showTooltip(event.pageX, event.pageY, stateData.state || stateCode, stateCode, dataValue);
-})
-// Add console.log statements to debug mouse events
-.on("mouseover", (event, d) => {
-    console.log("Mouseover event triggered");
-    const stateCode = d.properties.name;
-    const stateData = dataMap[stateCode];
-    const dataValue = stateData ? stateData[dataType] : "No data";
-    showTooltip(event.pageX, event.pageY, stateData.state || stateCode, stateCode, dataValue);
-})
-.on("mousemove", (event) => {
-    console.log("Mousemove event triggered");
-    moveTooltip(event.pageX, event.pageY);
-})
-.on("mouseout", () => {
-    console.log("Mouseout event triggered");
-    hideTooltip();
-});
-
+            const stateCode = d.properties.name;
+            const stateData = dataMap[stateCode];
+            const dataValue = stateData ? stateData[dataType] : "No data";
+            showTooltip(event.pageX, event.pageY, stateData.state || stateCode, stateCode, dataValue);
+        })
+        .on("mousemove", (event) => {
+            moveTooltip(event.pageX, event.pageY);
+        })
+        .on("mouseout", () => {
+            hideTooltip();
+        });
 
     // Optional: Draw state borders
     svg.append("path")
