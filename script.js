@@ -66,17 +66,19 @@ function drawMap(us, dataMap, dataType) {
             return stateData ? colorScale(stateData[dataType]) : "#ccc";
         })
         .attr("d", path)
-        .on("mouseover", (event, d) => {
-            tooltip.style("visibility", "visible")
-                .html(() => {
-                    const stateCode = d.properties.name;
-                    const stateData = dataMap[stateCode];
-                    const dataValue = stateData ? stateData[dataType] : "No data";
-                    return `<strong>${stateData.state}</strong> (${stateCode}): ${dataValue}`;
-                })
-                .style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 28) + "px");
+.on("mouseover", (event, d) => {
+    const stateCode = d.properties.name;
+    console.log("State code from map:", stateCode);
+    const stateData = dataMap[stateCode];
+    tooltip.style("visibility", "visible")
+        .html(() => {
+            const dataValue = stateData ? stateData[dataType] : "No data";
+            return `<strong>${stateData ? stateData.state : stateCode}</strong> (${stateCode}): ${dataValue}`;
         })
+        .style("left", (event.pageX + 10) + "px")
+        .style("top", (event.pageY - 28) + "px");
+})
+
         .on("mousemove", (event) => {
             tooltip.style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px");
