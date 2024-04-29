@@ -48,6 +48,8 @@ Promise.all([
 
 // Draw or update the map based on the dataset
 function drawMap(us, dataMap, dataType) {
+    console.log("US object:", us);
+
     const colorSchemes = {
         cases: d3.schemeBlues[6], // Blues color scheme for cases
         deaths: d3.schemeReds[6], // Reds color scheme for deaths
