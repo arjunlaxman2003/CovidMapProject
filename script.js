@@ -67,12 +67,13 @@ function drawMap(us, dataMap, dataType) {
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateCode = d.properties.name;
-            const stateData = dataMap[stateCode];
-            const stateName = stateData ? stateData.state : stateCode;
-            const dataValue = stateData ? stateData[dataType] : "No data";
-            showTooltip(event.pageX, event.pageY, stateName, stateCode, dataValue);
-        })
+    const stateCode = d.properties.name;
+    const stateData = dataMap[stateCode];
+    const stateName = stateData ? stateData.state : stateCode;
+    const dataValue = stateData ? stateData[dataType] : "No data";
+    showTooltip(event.pageX, event.pageY, stateName, stateCode, dataValue);
+})
+
         .on("mousemove", (event) => {
             moveTooltip(event.pageX, event.pageY);
         })
