@@ -66,29 +66,37 @@ function drawMap(us, dataMap, dataType) {
             return stateData ? colorScale(stateData[dataType]) : "#ccc";
         })
         .attr("d", path)
-.on("mouseover", (event, d) => {
-    const stateCode = d.properties.name;
-    console.log("State code from map:", stateCode);
-    const stateData = dataMap[stateCode];
-    tooltip.style("visibility", "visible")
-        .html(() => {
+        .on("mouseover", (event, d) => {
+            const stateCode = d.properties.name;
+            const stateData = dataMap[stateCode];
             const dataValue = stateData ? stateData[dataType] : "No data";
-            return `<strong>${stateData ? stateData.state : stateCode}</strong> (${stateCode}): ${dataValue}`;
+            showTooltip(event.pageX, event.pageY, stateData.state || stateCode, stateCode, dataValue);
         })
-        .style("left", (event.pageX + 10) + "px")
-        .style("top", (event.pageY - 28) + "px");
-})
-
         .on("mousemove", (event) => {
-            tooltip.style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 28) + "px");
+            moveTooltip(event.pageX, event.pageY);
         })
         .on("mouseout", () => {
-            tooltip.style("visibility", "hidden");
+            hideTooltip();
         });
 
     // Optional: Draw state borders
     svg.append("path")
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
+}
+
+function showTooltip(x, y, stateName, stateCode, dataValue) {
+    tooltip.style("visibility", "visible")
+        .html(`<strong>${stateName}</strong> (${stateCode}): ${dataValue}`)
+        .style("left", (x + 10) + "px")
+        .style("top", (y - 28) + "px");
+}
+
+function moveTooltip(x, y) {
+    tooltip.style("left", (x + 10) + "px")
+        .style("top", (y - 28) + "px");
+}
+
+function hideTooltip() {
+    tooltip.style("visibility", "hidden");
 }
