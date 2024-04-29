@@ -1,25 +1,3 @@
-// Initial configurations
-const width = 960, height = 600;
-const colorScheme = d3.schemeReds[6];
-const colorScale = d3.scaleQuantize().range(colorScheme);
-const path = d3.geoPath();
-
-// Append SVG to the map container
-const svg = d3.select("#map").append("svg")
-    .attr("width", width)
-    .attr("height", height);
-
-// Define tooltip
-const tooltip = d3.select("body").append("div")
-    .attr("id", "tooltip")
-    .style("position", "absolute")
-    .style("visibility", "hidden")
-    .style("padding", "10px")
-    .style("background", "white")
-    .style("border", "1px solid #ccc")
-    .style("border-radius", "5px")
-    .style("pointer-events", "none");
-
 // Load geographic and data files
 Promise.all([
     d3.json("https://d3js.org/us-10m.v1.json"), 
@@ -39,7 +17,13 @@ Promise.all([
         };
     });
 
-    // Draw initial map with default data type (cases)
+ 
+    const states = topojson.feature(us, us.objects.states).features;
+    states.forEach(d => {
+        const stateCode = d.properties.code; 
+        console.log(`State Code from GeoJSON: ${stateCode}, State Data Available: ${!!dataMap[stateCode]}`);
+    });
+
     drawMap(us, dataMap, "cases");
 
     // Set up UI interaction
@@ -48,36 +32,29 @@ Promise.all([
     });
 });
 
-// Draw the map based on the dataset
-
 function drawMap(us, dataMap, dataType) {
     const dataValues = Object.values(dataMap).map(d => d[dataType]);
     colorScale.domain([d3.min(dataValues), d3.max(dataValues)]);
 
     svg.selectAll("*").remove(); // Clear previous drawings
 
-    const states = svg.append("g")
+    const states = topojson.feature(us, us.objects.states).features;
+    svg.append("g")
         .attr("class", "states")
         .selectAll("path")
-        .data(topojson.feature(us, us.objects.states).features)
+        .data(states)
         .enter().append("path")
         .attr("fill", d => {
-            const stateCode = d.properties.name;
+            const stateCode = d.properties.code; 
             const stateData = dataMap[stateCode];
             return stateData ? colorScale(stateData[dataType]) : "#ccc";
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateCode = d.properties.name;
-            const stateData = dataMap[stateCode];
-            let stateName = stateCode;
-            let dataValue = "No data";
-            if (stateData) {
-                stateName = stateData.state || stateCode;
-                dataValue = stateData[dataType] || "No data";
-            }
+            const stateCode = d.properties.code;
+            const stateData = dataMap[stateCode] || { state: "No data", cases: "No data" };
             tooltip.style("visibility", "visible")
-                .html(`<strong>${stateName}</strong> (${stateCode}): ${dataValue}`)
+                .html(`<strong>${stateData.state}</strong> (${stateCode}): ${stateData[dataType]}`)
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
