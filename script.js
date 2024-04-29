@@ -10,7 +10,7 @@ const svg = d3.select("#map").append("svg")
     .attr("height", height);
 
 // Define tooltip
-const tooltip = d3.select("#map").append("div")
+const tooltip = d3.select("body").append("div")
     .attr("id", "tooltip")
     .style("position", "absolute")
     .style("visibility", "hidden")
@@ -18,8 +18,35 @@ const tooltip = d3.select("#map").append("div")
     .style("background", "white")
     .style("border", "1px solid #ccc")
     .style("border-radius", "5px")
-    .style("pointer-events", "none")
-    .style("z-index", "999"); 
+    .style("pointer-events", "none");
+
+// Load geographic and data files
+Promise.all([
+    d3.json("https://d3js.org/us-10m.v1.json"), 
+    d3.csv("Data.csv")
+]).then(function (files) {
+    const us = files[0];
+    const data = files[1];
+
+    // Aggregate data by state
+    const dataMap = {};
+    data.forEach(d => {
+        dataMap[d.State_Code] = {
+            state: d.State,
+            cases: +d.Cases,
+            deaths: +d.Deaths,
+            vaccination: +d.Doses  
+        };
+    });
+
+    // Draw initial map with default data type (cases)
+    drawMap(us, dataMap, "cases");
+
+    // Set up UI interaction
+    document.getElementById('data-select').addEventListener('change', function() {
+        drawMap(us, dataMap, this.value);
+    });
+});
 
 // Draw or update the map based on the dataset
 function drawMap(us, dataMap, dataType) {
@@ -59,17 +86,11 @@ function drawMap(us, dataMap, dataType) {
 }
 
 function showTooltip(x, y, stateName, stateCode, dataValue) {
-    if (stateName && stateCode && dataValue) {
-        tooltip.style("visibility", "visible")
-            .html(`<strong>${stateName}</strong> (${stateCode}): ${dataValue}`)
-            .style("left", (x + 10) + "px")
-            .style("top", (y - 28) + "px");
-    } else {
-        tooltip.style("visibility", "hidden");
-    }
+    tooltip.style("visibility", "visible")
+        .html(`<strong>${stateName}</strong> (${stateCode}): ${dataValue}`)
+        .style("left", (x + 10) + "px")
+        .style("top", (y - 28) + "px");
 }
-
-
 
 function moveTooltip(x, y) {
     tooltip.style("left", (x + 10) + "px")
@@ -79,31 +100,3 @@ function moveTooltip(x, y) {
 function hideTooltip() {
     tooltip.style("visibility", "hidden");
 }
-
-// Load geographic and data files
-Promise.all([
-    d3.json("https://d3js.org/us-10m.v1.json"), 
-    d3.csv("Data.csv")
-]).then(function (files) {
-    const us = files[0];
-    const data = files[1];
-
-    // Aggregate data by state
-    const dataMap = {};
-    data.forEach(d => {
-        dataMap[d.State_Code] = {
-            state: d.State,
-            cases: +d.Cases,
-            deaths: +d.Deaths,
-            vaccination: +d.Doses  
-        };
-    });
-
-    //  initial map with default data  (cases)
-    drawMap(us, dataMap, "cases");
-
-    // UI interaction
-    document.getElementById('data-select').addEventListener('change', function() {
-        drawMap(us, dataMap, this.value);
-    });
-});
