@@ -31,7 +31,8 @@ Promise.all([
     // Aggregate data by state
     const dataMap = {};
     data.forEach(d => {
-        dataMap[d.State] = {
+        dataMap[d.State_Code] = {
+            state: d.State,
             cases: +d.Cases,
             deaths: +d.Deaths,
             vaccination: +d.Doses  
@@ -60,16 +61,18 @@ function drawMap(us, dataMap, dataType) {
         .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateData = dataMap[d.properties.name];
+            const stateCode = d.properties.name;
+            const stateData = dataMap[stateCode];
             return stateData ? colorScale(stateData[dataType]) : "#ccc";
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
             tooltip.style("visibility", "visible")
                 .html(() => {
-                    const stateData = dataMap[d.properties.name];
+                    const stateCode = d.properties.name;
+                    const stateData = dataMap[stateCode];
                     const dataValue = stateData ? stateData[dataType] : "No data";
-                    return `<strong>${d.properties.name}</strong>: ${dataValue}`;
+                    return `<strong>${stateData.state}</strong> (${stateCode}): ${dataValue}`;
                 })
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px");
