@@ -74,6 +74,14 @@ function drawMap(us, dataMap, dataType) {
     const dataValue = stateData ? stateData[dataType] : "No data";
     showTooltip(event.pageX, event.pageY, stateData.state || stateCode, stateCode, dataValue);
 })
+// Add console.log statements to debug mouse events
+.on("mouseover", (event, d) => {
+    console.log("Mouseover event triggered");
+    const stateCode = d.properties.name;
+    const stateData = dataMap[stateCode];
+    const dataValue = stateData ? stateData[dataType] : "No data";
+    showTooltip(event.pageX, event.pageY, stateData.state || stateCode, stateCode, dataValue);
+})
 .on("mousemove", (event) => {
     console.log("Mousemove event triggered");
     moveTooltip(event.pageX, event.pageY);
