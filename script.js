@@ -1,7 +1,5 @@
 // Initial configurations
 const width = 960, height = 600;
-const colorScheme = d3.schemeReds[6];
-const colorScale = d3.scaleQuantize().range(colorScheme);
 const path = d3.geoPath();
 
 // Append SVG to the map container
@@ -50,8 +48,15 @@ Promise.all([
 
 // Draw or update the map based on the dataset
 function drawMap(us, dataMap, dataType) {
+    const colorSchemes = {
+        cases: d3.schemeBlues[6], // Blues color scheme for cases
+        deaths: d3.schemeReds[6], // Reds color scheme for deaths
+        vaccination: d3.schemeGreens[6] // Greens color scheme for vaccination
+    };
+
     const dataValues = Object.values(dataMap).map(d => d[dataType]);
-    colorScale.domain([d3.min(dataValues), d3.max(dataValues)]);
+    const colorScheme = colorSchemes[dataType] || d3.schemeBlues[6]; // Default to Blues if no matching color scheme found
+    const colorScale = d3.scaleQuantize().range(colorScheme).domain([d3.min(dataValues), d3.max(dataValues)]);
 
     svg.selectAll("*").remove(); // Clear previous drawings
 
