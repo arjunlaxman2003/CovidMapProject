@@ -49,6 +49,7 @@ Promise.all([
 });
 
 // Draw the map based on the dataset
+
 function drawMap(us, dataMap, dataType) {
     const dataValues = Object.values(dataMap).map(d => d[dataType]);
     colorScale.domain([d3.min(dataValues), d3.max(dataValues)]);
@@ -69,19 +70,12 @@ function drawMap(us, dataMap, dataType) {
         .on("mouseover", (event, d) => {
             const stateCode = d.properties.name;
             const stateData = dataMap[stateCode];
-            if (stateData) {
-                const dataValue = stateData[dataType];
-                const stateName = stateData.state;
-                tooltip.style("visibility", "visible")
-                    .html(`<strong>${stateName}</strong> (${stateCode}): ${dataValue}`)
-                    .style("left", (event.pageX + 10) + "px")
-                    .style("top", (event.pageY - 28) + "px");
-            } else {
-                tooltip.style("visibility", "visible")
-                    .html(`<strong>${stateCode}</strong>: No data`)
-                    .style("left", (event.pageX + 10) + "px")
-                    .style("top", (event.pageY - 28) + "px");
-            }
+            const dataValue = stateData ? stateData[dataType] : "No data";
+            const stateName = stateData ? stateData.state : stateCode;
+            tooltip.style("visibility", "visible")
+                .html(`<strong>${stateName}</strong> (${stateCode}): ${dataValue}`)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
         })
         .on("mousemove", (event) => {
             tooltip.style("left", (event.pageX + 10) + "px")
@@ -96,3 +90,4 @@ function drawMap(us, dataMap, dataType) {
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
 }
+
