@@ -20,7 +20,7 @@ const tooltip = d3.select("body").append("div")
 
 // Load geographic and data files
 Promise.all([
-    d3.json("https://d3js.org/us-10m.v1.json"), 
+    d3.json("https://d3js.org/us-10m.v1.json"),
     d3.csv("Data.csv")
 ]).then(function (files) {
     const us = files[0];
@@ -33,7 +33,7 @@ Promise.all([
             state: d.State,
             cases: +d.Cases,
             deaths: +d.Deaths,
-            vaccination: +d.Doses  
+            vaccination: +d.Doses
         };
     });
 
@@ -41,7 +41,7 @@ Promise.all([
     drawMap(us, dataMap, "cases");
 
     // Set up UI interaction
-    document.getElementById('data-select').addEventListener('change', function() {
+    document.getElementById('data-select').addEventListener('change', function () {
         drawMap(us, dataMap, this.value);
     });
 });
@@ -55,6 +55,7 @@ function drawMap(us, dataMap, dataType) {
     };
 
     const dataValues = Object.values(dataMap).map(d => d[dataType]);
+
     const colorScheme = colorSchemes[dataType] || d3.schemeBlues[6]; // Default to Blues if no matching color scheme found
     const colorScale = d3.scaleQuantize().range(colorScheme).domain([d3.min(dataValues), d3.max(dataValues)]);
 
@@ -63,16 +64,16 @@ function drawMap(us, dataMap, dataType) {
     const states = svg.append("g")
         .attr("class", "states")
         .selectAll("path")
-        .data(topojson.feature(us, us.objects.states).features)
+        .data(topojson.feature(us, us.objects.us_states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateCode = d.properties.name;
+            const stateCode = d.id;
             const stateData = dataMap[stateCode];
             return stateData ? colorScale(stateData[dataType]) : "#ccc";
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateCode = d.properties.name;
+            const stateCode = d.id;
             const stateData = dataMap[stateCode];
             const dataValue = stateData ? stateData[dataType] : "No data";
             showTooltip(event.pageX, event.pageY, stateData.state || stateCode, stateCode, dataValue);
@@ -87,7 +88,7 @@ function drawMap(us, dataMap, dataType) {
     // Optional: Draw state borders
     svg.append("path")
         .attr("class", "state-borders")
-        .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
+        .attr("d", path(topojson.mesh(us, us.objects.us_states, (a, b) => a !== b)));
 }
 
 function showTooltip(x, y, stateName, stateCode, dataValue) {
