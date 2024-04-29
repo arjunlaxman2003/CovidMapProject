@@ -48,16 +48,19 @@ Promise.all([
 
 // Draw or update the map based on the dataset
 function drawMap(us, dataMap, dataType) {
-    console.log("US object:", us);
-
-    const colorSchemes = {
-        cases: d3.schemeBlues[6], // Blues color scheme for cases
-        deaths: d3.schemeReds[6], // Reds color scheme for deaths
-        vaccination: d3.schemeGreens[6] // Greens color scheme for vaccination
-    };
+    console.log("US object:", us); // Log the us object to check if it's correctly loaded
+    if (!us) {
+        console.error("US object is undefined. Check if the data is loaded correctly.");
+        return;
+    }
 
     const dataValues = Object.values(dataMap).map(d => d[dataType]);
-    const colorScheme = colorSchemes[dataType] || d3.schemeBlues[6]; // Default to Blues if no matching color scheme found
+    const colorSchemes = {
+        cases: d3.schemeBlues[6],
+        deaths: d3.schemeReds[6],
+        vaccination: d3.schemeGreens[6]
+    };
+    const colorScheme = colorSchemes[dataType] || d3.schemeBlues[6];
     const colorScale = d3.scaleQuantize().range(colorScheme).domain([d3.min(dataValues), d3.max(dataValues)]);
 
     svg.selectAll("*").remove(); // Clear previous drawings
@@ -90,20 +93,4 @@ function drawMap(us, dataMap, dataType) {
     svg.append("path")
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
-}
-
-function showTooltip(x, y, stateName, stateCode, dataValue) {
-    tooltip.style("visibility", "visible")
-        .html(`<strong>${stateName}</strong> (${stateCode}): ${dataValue}`)
-        .style("left", (x + 10) + "px")
-        .style("top", (y - 28) + "px");
-}
-
-function moveTooltip(x, y) {
-    tooltip.style("left", (x + 10) + "px")
-        .style("top", (y - 28) + "px");
-}
-
-function hideTooltip() {
-    tooltip.style("visibility", "hidden");
 }
