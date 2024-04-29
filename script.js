@@ -74,21 +74,19 @@ function drawMap(us, dataMap, dataType) {
     const states = svg.append("g")
         .attr("class", "states")
         .selectAll("path")
-        .data(us.objects.states.geometries) // Access the geometries array directly
+        .data(topojson.feature(us, us.objects.states).features)
         .enter().append("path")
         .attr("fill", d => {
-            const stateCode = d.id; // Assuming the state code is stored in the "id" field
-            const stateName = stateCodeToName[stateCode]; // Retrieve state name using the code
+            const stateName = stateCodeToName[d.properties.name];
             const stateData = dataMap[stateName];
             return stateData ? colorScale(stateData[dataType]) : "#ccc";
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateCode = d.id; // Assuming the state code is stored in the "id" field
-            const stateName = stateCodeToName[stateCode]; // Retrieve state name using the code
-            const stateData = dataMap[stateName];
             tooltip.style("visibility", "visible")
                 .html(() => {
+                    const stateName = stateCodeToName[d.properties.name];
+                    const stateData = dataMap[stateName];
                     const dataValue = stateData ? stateData[dataType] : "No data";
                     return `<strong>${stateName}</strong>: ${dataValue}`;
                 })
