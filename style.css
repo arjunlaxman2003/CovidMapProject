@@ -62,7 +62,7 @@ h1 {
     border: 1px solid #ccc;
     border-radius: 5px;
     pointer-events: none;
-    z-index: 999; /* Ensure tooltip appears above other elements */
+    z-index: 999; 
 }
 
 /* SVG path for states styling */
