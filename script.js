@@ -69,13 +69,19 @@ function drawMap(us, dataMap, dataType) {
         .on("mouseover", (event, d) => {
             const stateCode = d.properties.name;
             const stateData = dataMap[stateCode];
-            const dataValue = stateData ? stateData[dataType] : "No data";
-            const stateName = stateData ? stateData.state : "Unknown";
-            
-            tooltip.style("visibility", "visible")
-                .html(`<strong>${stateName}</strong> (${stateCode}): ${dataValue}`)
-                .style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 28) + "px");
+            if (stateData) {
+                const dataValue = stateData[dataType];
+                const stateName = stateData.state;
+                tooltip.style("visibility", "visible")
+                    .html(`<strong>${stateName}</strong> (${stateCode}): ${dataValue}`)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            } else {
+                tooltip.style("visibility", "visible")
+                    .html(`<strong>${stateCode}</strong>: No data`)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            }
         })
         .on("mousemove", (event) => {
             tooltip.style("left", (event.pageX + 10) + "px")
