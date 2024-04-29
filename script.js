@@ -6,22 +6,15 @@ Promise.all([
     const us = files[0];
     const data = files[1];
 
-    // Aggregate data by state
+    // Aggregate data by state using state ID as key, formatted to match
     const dataMap = {};
     data.forEach(d => {
-        dataMap[d.State_Code] = {
+        dataMap[d.State_Code.padStart(2, '0')] = { // Ensure two-digit IDs
             state: d.State,
             cases: +d.Cases,
             deaths: +d.Deaths,
             vaccination: +d.Doses  
         };
-    });
-
- 
-    const states = topojson.feature(us, us.objects.states).features;
-    states.forEach(d => {
-        const stateCode = d.properties.code; 
-        console.log(`State Code from GeoJSON: ${stateCode}, State Data Available: ${!!dataMap[stateCode]}`);
     });
 
     drawMap(us, dataMap, "cases");
@@ -45,16 +38,16 @@ function drawMap(us, dataMap, dataType) {
         .data(states)
         .enter().append("path")
         .attr("fill", d => {
-            const stateCode = d.properties.code; 
-            const stateData = dataMap[stateCode];
+            const stateID = d.id; // Use 'id' to match with the state code
+            const stateData = dataMap[stateID];
             return stateData ? colorScale(stateData[dataType]) : "#ccc";
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateCode = d.properties.code;
-            const stateData = dataMap[stateCode] || { state: "No data", cases: "No data" };
+            const stateID = d.id;
+            const stateData = dataMap[stateID] || { state: "No data", cases: "No data" };
             tooltip.style("visibility", "visible")
-                .html(`<strong>${stateData.state}</strong> (${stateCode}): ${stateData[dataType]}`)
+                .html(`<strong>${stateData.state}</strong> (${stateID}): ${stateData[dataType]}`)
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
