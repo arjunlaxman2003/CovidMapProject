@@ -72,7 +72,7 @@ function drawMap(us, dataMap, dataType) {
                     const stateCode = d.properties.name;
                     const stateData = dataMap[stateCode];
                     const dataValue = stateData ? stateData[dataType] : "No data";
-                    return `<strong>${stateData.state}</strong> (${stateCode}): ${dataValue}`;
+                    return `<strong>${stateData ? stateData.state : stateCode}</strong> (${stateCode}): ${dataValue}`;
                 })
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px");
@@ -85,10 +85,8 @@ function drawMap(us, dataMap, dataType) {
             tooltip.style("visibility", "hidden");
         });
 
-    // Optional: Draw state borders
+    // Draw state borders
     svg.append("path")
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, (a, b) => a !== b)));
 }
-
-
