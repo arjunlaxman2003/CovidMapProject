@@ -49,8 +49,8 @@ Promise.all([
 // Draw or update the map based on the dataset
 function drawMap(us, dataMap, dataType) {
     console.log("US object:", us); // Log the us object to check if it's correctly loaded
-    if (!us) {
-        console.error("US object is undefined. Check if the data is loaded correctly.");
+    if (!us || !us.objects || !us.objects.states) {
+        console.error("US object is undefined or doesn't have the expected structure. Check if the data is loaded correctly.");
         return;
     }
 
