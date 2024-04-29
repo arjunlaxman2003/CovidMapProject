@@ -68,17 +68,21 @@ function drawMap(us, dataMap, dataType) {
         })
         .attr("d", path)
         .on("mouseover", (event, d) => {
-            const stateCode = d.properties.name;
-            const stateData = dataMap[stateCode];
-            const dataValue = stateData ? stateData[dataType] : "No data";
-            showTooltip(event.pageX, event.pageY, stateData.state || stateCode, stateCode, dataValue);
-        })
-        .on("mousemove", (event) => {
-            moveTooltip(event.pageX, event.pageY);
-        })
-        .on("mouseout", () => {
-            hideTooltip();
-        });
+    console.log("Mouseover event triggered");
+    const stateCode = d.properties.name;
+    const stateData = dataMap[stateCode];
+    const dataValue = stateData ? stateData[dataType] : "No data";
+    showTooltip(event.pageX, event.pageY, stateData.state || stateCode, stateCode, dataValue);
+})
+.on("mousemove", (event) => {
+    console.log("Mousemove event triggered");
+    moveTooltip(event.pageX, event.pageY);
+})
+.on("mouseout", () => {
+    console.log("Mouseout event triggered");
+    hideTooltip();
+});
+
 
     // Optional: Draw state borders
     svg.append("path")
